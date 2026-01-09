@@ -153,13 +153,18 @@ def build_frontend() -> bool:
     return run_command([npm_cmd, "run", "build"], cwd=UI_DIR)
 
 
-def start_dev_server(port: int) -> tuple:
+def start_dev_server(port: int, api_key: str | None = None) -> tuple:
     """Start both Vite and FastAPI in development mode."""
     venv_python = get_venv_python()
 
     print("\n  Starting development servers...")
     print(f"  - FastAPI backend: http://127.0.0.1:{port}")
     print("  - Vite frontend:   http://127.0.0.1:5173")
+
+    # Prepare environment for subprocess, including API key if provided
+    backend_env = os.environ.copy()
+    if api_key:
+        backend_env["AUTO_CODER_API_KEY"] = api_key
 
     # Start FastAPI
     backend = subprocess.Popen([
@@ -168,7 +173,7 @@ def start_dev_server(port: int) -> tuple:
         "--host", "127.0.0.1",
         "--port", str(port),
         "--reload"
-    ], cwd=str(ROOT))
+    ], cwd=str(ROOT), env=backend_env)
 
     # Start Vite with API port env var for proxy configuration
     npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
@@ -181,27 +186,38 @@ def start_dev_server(port: int) -> tuple:
     return backend, frontend
 
 
-def start_production_server(port: int):
+def start_production_server(port: int, api_key: str | None = None):
     """Start FastAPI server in production mode."""
     venv_python = get_venv_python()
 
     print(f"\n  Starting server at http://127.0.0.1:{port}")
+
+    # Prepare environment for subprocess, including API key if provided
+    backend_env = os.environ.copy()
+    if api_key:
+        backend_env["AUTO_CODER_API_KEY"] = api_key
 
     return subprocess.Popen([
         str(venv_python), "-m", "uvicorn",
         "server.main:app",
         "--host", "127.0.0.1",
         "--port", str(port)
-    ], cwd=str(ROOT))
+    ], cwd=str(ROOT), env=backend_env)
 
 
 def main() -> None:
     """Main entry point."""
     dev_mode = "--dev" in sys.argv
 
+    # Read API key from environment (set by start_ui.bat or start_ui.sh)
+    api_key = os.environ.get("AUTO_CODER_API_KEY") or os.environ.get("API_KEY", "")
+
     print("=" * 50)
     print("  AutoCoder UI Setup")
     print("=" * 50)
+
+    if api_key:
+        print("  GLM model support: ENABLED")
 
     total_steps = 6 if not dev_mode else 5
 
@@ -250,7 +266,7 @@ def main() -> None:
 
     try:
         if dev_mode:
-            backend, frontend = start_dev_server(port)
+            backend, frontend = start_dev_server(port, api_key)
 
             # Open browser to Vite dev server
             time.sleep(3)
@@ -273,7 +289,7 @@ def main() -> None:
                 backend.wait()
                 frontend.wait()
         else:
-            server = start_production_server(port)
+            server = start_production_server(port, api_key)
 
             # Open browser
             time.sleep(2)

@@ -34,5 +34,15 @@ source venv/bin/activate
 echo "Installing dependencies..."
 pip install -r requirements.txt --quiet
 
+# Prompt for API Key (optional, for GLM model support)
+echo ""
+echo "Optional: Enter API Key for GLM model support (https://api.z.ai/api/anthropic)"
+read -p "API Key (press Enter to skip): " API_KEY
+
+# Export as environment variable if provided
+if [ -n "$API_KEY" ]; then
+    export AUTO_CODER_API_KEY="$API_KEY"
+fi
+
 # Run the Python launcher
 python start_ui.py "$@"

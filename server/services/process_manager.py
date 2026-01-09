@@ -8,6 +8,7 @@ Provides start/stop/pause/resume functionality with cross-platform support.
 
 import asyncio
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -214,12 +215,13 @@ class AgentProcessManager:
                     self.status = "stopped"
                 self._remove_lock()
 
-    async def start(self, yolo_mode: bool = False) -> tuple[bool, str]:
+    async def start(self, yolo_mode: bool = False, api_key: str | None = None) -> tuple[bool, str]:
         """
         Start the agent as a subprocess.
 
         Args:
             yolo_mode: If True, run in YOLO mode (no browser testing)
+            api_key: Optional API key for GLM model support
 
         Returns:
             Tuple of (success, message)
@@ -245,6 +247,13 @@ class AgentProcessManager:
         if yolo_mode:
             cmd.append("--yolo")
 
+        # Add --api-key argument if provided
+        if api_key:
+            cmd.extend(["--api-key", api_key])
+
+        # Prepare environment variables for the subprocess
+        env = os.environ.copy()
+
         try:
             # Start subprocess with piped stdout/stderr
             # Use project_dir as cwd so Claude SDK sandbox allows access to project files
@@ -253,6 +262,7 @@ class AgentProcessManager:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 cwd=str(self.project_dir),
+                env=env,
             )
 
             self._create_lock()

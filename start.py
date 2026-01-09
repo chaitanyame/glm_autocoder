@@ -13,6 +13,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (if it exists)
+# IMPORTANT: Must be called BEFORE importing other modules that read env vars at load time
+load_dotenv()
+
 from prompts import (
     get_project_prompts_dir,
     has_project_prompts,

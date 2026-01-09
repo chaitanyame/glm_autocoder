@@ -95,6 +95,13 @@ Authentication:
         help="Enable YOLO mode: rapid prototyping without browser testing",
     )
 
+    parser.add_argument(
+        "--api-key",
+        type=str,
+        default=None,
+        help="API key for GLM model support (e.g., test-api-key for https://api.z.ai/api/anthropic)",
+    )
+
     return parser.parse_args()
 
 
@@ -134,6 +141,7 @@ def main() -> None:
                 model=args.model,
                 max_iterations=args.max_iterations,
                 yolo_mode=args.yolo,
+                api_key=args.api_key,
             )
         )
     except KeyboardInterrupt:

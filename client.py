@@ -73,7 +73,7 @@ BUILTIN_TOOLS = [
 ]
 
 
-def create_client(project_dir: Path, model: str, yolo_mode: bool = False):
+def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_key: str | None = None):
     """
     Create a Claude Agent SDK client with multi-layered security.
 
@@ -81,6 +81,7 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False):
         project_dir: Directory for the project
         model: Claude model to use
         yolo_mode: If True, skip Playwright MCP server for rapid prototyping
+        api_key: Optional API key for GLM model support
 
     Returns:
         Configured ClaudeSDKClient (from claude_agent_sdk)
@@ -124,12 +125,36 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False):
     # Create comprehensive security settings
     # Note: Using relative paths ("./**") restricts access to project directory
     # since cwd is set to project_dir
+
+    # Build environment settings for GLM model support
+    # Get API key from parameter or environment variable
+    glm_api_key = api_key or os.environ.get("ZAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    
+    env_settings = {
+        "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+        "API_TIMEOUT_MS": "300000",  # 5 minute timeout
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    }
+
+    # Add API key if available (required for GLM model support)
+    if glm_api_key:
+        env_settings["ANTHROPIC_AUTH_TOKEN"] = glm_api_key
+    
+    # CRITICAL: Set environment variables in the current process
+    # The Claude CLI inherits these from the parent process environment
+    for key, value in env_settings.items():
+        os.environ[key] = str(value)
+
     security_settings = {
         "sandbox": {"enabled": True, "autoAllowBashIfSandboxed": True},
         "permissions": {
             "defaultMode": "acceptEdits",  # Auto-approve edits within allowed directories
             "allow": permissions_list,
         },
+        "env": env_settings,  # Always include GLM environment settings
     }
 
     # Ensure project directory exists before creating settings file
@@ -144,6 +169,11 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False):
     print("   - Sandbox enabled (OS-level bash isolation)")
     print(f"   - Filesystem restricted to: {project_dir.resolve()}")
     print("   - Bash commands restricted to allowlist (see security.py)")
+    if glm_api_key:
+        print(f"   - GLM model support enabled (API key: {glm_api_key[:8]}...)")
+        print(f"   - Using endpoint: {env_settings['ANTHROPIC_BASE_URL']}")
+    else:
+        print("   - WARNING: No API key found! Set ZAI_API_KEY in .env file")
     if yolo_mode:
         print("   - MCP servers: features (database) - YOLO MODE (no Playwright)")
     else:

@@ -103,6 +103,7 @@ class FeatureListResponse(BaseModel):
 class AgentStartRequest(BaseModel):
     """Request schema for starting the agent."""
     yolo_mode: bool = False
+    api_key: str | None = None  # Optional API key for GLM model support
 
 
 class AgentStatus(BaseModel):

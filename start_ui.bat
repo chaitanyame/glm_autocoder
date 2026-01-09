@@ -31,6 +31,12 @@ REM Install dependencies
 echo Installing dependencies...
 pip install -r requirements.txt --quiet
 
+REM Prompt for API Key (optional, for GLM model support)
+echo.
+echo Optional: Enter API Key for GLM model support (https://api.z.ai/api/anthropic)
+echo Press Enter to skip (will use default Anthropic endpoint)
+set /p API_KEY="API Key: "
+
 REM Run the Python launcher
 python "%~dp0start_ui.py" %*
 

@@ -111,6 +111,7 @@ async def run_autonomous_agent(
     model: str,
     max_iterations: Optional[int] = None,
     yolo_mode: bool = False,
+    api_key: Optional[str] = None,
 ) -> None:
     """
     Run the autonomous agent loop.
@@ -120,6 +121,7 @@ async def run_autonomous_agent(
         model: Claude model to use
         max_iterations: Maximum number of iterations (None for unlimited)
         yolo_mode: If True, skip browser testing and use YOLO prompt
+        api_key: Optional API key for GLM model support
     """
     print("\n" + "=" * 70)
     print("  AUTONOMOUS CODING AGENT DEMO")
@@ -175,7 +177,7 @@ async def run_autonomous_agent(
         print_session_header(iteration, is_first_run)
 
         # Create client (fresh context)
-        client = create_client(project_dir, model, yolo_mode=yolo_mode)
+        client = create_client(project_dir, model, yolo_mode=yolo_mode, api_key=api_key)
 
         # Choose prompt based on session type
         # Pass project_dir to enable project-specific prompts

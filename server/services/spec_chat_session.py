@@ -8,6 +8,7 @@ Uses the create-spec.md skill to guide users through app spec creation.
 
 import json
 import logging
+import os
 import shutil
 import threading
 from datetime import datetime
@@ -116,6 +117,24 @@ class SpecChatSession:
             app_spec_path.unlink()
             logger.info("Deleted scaffolded app_spec.txt for fresh spec creation")
 
+        # Build environment settings for GLM model support
+        glm_api_key = os.environ.get("ZAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+        env_settings = {
+            "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+            "API_TIMEOUT_MS": "300000",  # 5 minute timeout
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        }
+        if glm_api_key:
+            env_settings["ANTHROPIC_AUTH_TOKEN"] = glm_api_key
+        
+        # CRITICAL: Set environment variables in the current process
+        # The Claude CLI inherits these from the parent process environment
+        for key, value in env_settings.items():
+            os.environ[key] = str(value)
+
         # Create security settings file (like client.py does)
         # This grants permissions for file operations in the project directory
         security_settings = {
@@ -129,6 +148,7 @@ class SpecChatSession:
                     "Glob(./**)",
                 ],
             },
+            "env": env_settings,  # GLM environment settings
         }
         settings_file = self.project_dir / ".claude_settings.json"
         with open(settings_file, "w") as f:

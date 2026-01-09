@@ -6,6 +6,7 @@ API endpoints for agent control (start/stop/pause/resume).
 Uses project registry for path lookups.
 """
 
+import os
 import re
 from pathlib import Path
 
@@ -80,7 +81,10 @@ async def start_agent(
     """Start the agent for a project."""
     manager = get_project_manager(project_name)
 
-    success, message = await manager.start(yolo_mode=request.yolo_mode)
+    # Use API key from request if provided, otherwise read from environment
+    api_key = request.api_key or os.environ.get("AUTO_CODER_API_KEY")
+
+    success, message = await manager.start(yolo_mode=request.yolo_mode, api_key=api_key)
 
     return AgentActionResponse(
         success=success,
