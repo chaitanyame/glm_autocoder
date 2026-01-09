@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 // Backend port - can be overridden via VITE_API_PORT env var
-const apiPort = process.env.VITE_API_PORT || '8888'
+const apiPort = process.env.VITE_API_PORT || '8081'
 
 // https://vite.dev/config/
 export default defineConfig({

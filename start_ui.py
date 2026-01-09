@@ -39,7 +39,7 @@ def print_step(step: int, total: int, message: str) -> None:
     print("-" * 50)
 
 
-def find_available_port(start: int = 8888, max_attempts: int = 10) -> int:
+def find_available_port(start: int = 8081, max_attempts: int = 10) -> int:
     """Find an available port starting from the given port."""
     for port in range(start, start + max_attempts):
         try:
