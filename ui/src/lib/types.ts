@@ -104,6 +104,13 @@ export interface SetupStatus {
   credentials: boolean
   node: boolean
   npm: boolean
+  api_key_configured: boolean
+}
+
+export interface ApiKeyResponse {
+  success: boolean
+  message: string
+  masked_key: string | null
 }
 
 // WebSocket message types

@@ -23,7 +23,7 @@ from .routers import (
     projects_router,
     spec_creation_router,
 )
-from .schemas import SetupStatus
+from .schemas import SetupStatus, ApiKeyRequest, ApiKeyResponse
 from .services.assistant_chat_session import cleanup_all_sessions as cleanup_assistant_sessions
 from .services.process_manager import cleanup_all_managers
 from .websocket import project_websocket
@@ -114,6 +114,36 @@ async def health_check():
     return {"status": "healthy"}
 
 
+def _get_api_key_from_env() -> str | None:
+    """Get API key from environment or .env file."""
+    import os
+    # First check environment variable
+    api_key = os.environ.get("ZAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if api_key and api_key != "your-api-key-here":
+        return api_key
+
+    # Check .env file
+    env_path = ROOT_DIR / ".env"
+    if env_path.exists():
+        import re
+        content = env_path.read_text()
+        # Look for ZAI_API_KEY first, then ANTHROPIC_API_KEY
+        for key_name in ["ZAI_API_KEY", "ANTHROPIC_API_KEY"]:
+            match = re.search(rf'^{key_name}=(.+)$', content, re.MULTILINE)
+            if match:
+                value = match.group(1).strip()
+                if value and value != "your-api-key-here":
+                    return value
+    return None
+
+
+def _mask_api_key(key: str) -> str:
+    """Mask API key for display, showing only first 4 and last 4 chars."""
+    if len(key) <= 8:
+        return "•" * len(key)
+    return f"{key[:4]}{'•' * (len(key) - 8)}{key[-4:]}"
+
+
 @app.get("/api/setup/status", response_model=SetupStatus)
 async def setup_status():
     """Check system setup status."""
@@ -128,11 +158,83 @@ async def setup_status():
     node = shutil.which("node") is not None
     npm = shutil.which("npm") is not None
 
+    # Check for API key
+    api_key = _get_api_key_from_env()
+    api_key_configured = api_key is not None
+
     return SetupStatus(
         claude_cli=claude_cli,
         credentials=credentials,
         node=node,
         npm=npm,
+        api_key_configured=api_key_configured,
+    )
+
+
+@app.get("/api/setup/api-key", response_model=ApiKeyResponse)
+async def get_api_key_status():
+    """Get current API key status (masked)."""
+    api_key = _get_api_key_from_env()
+    if api_key:
+        return ApiKeyResponse(
+            success=True,
+            message="API key is configured",
+            masked_key=_mask_api_key(api_key),
+        )
+    return ApiKeyResponse(
+        success=False,
+        message="No API key configured",
+        masked_key=None,
+    )
+
+
+@app.post("/api/setup/api-key", response_model=ApiKeyResponse)
+async def save_api_key(request: ApiKeyRequest):
+    """Save API key to .env file."""
+    import os
+    import re
+
+    env_path = ROOT_DIR / ".env"
+    example_path = ROOT_DIR / ".env.example"
+
+    # Read existing .env or create from example
+    if env_path.exists():
+        content = env_path.read_text()
+    elif example_path.exists():
+        content = example_path.read_text()
+    else:
+        content = "# GLM / Z.AI API Configuration\n"
+
+    # Update or add ZAI_API_KEY
+    if re.search(r'^ZAI_API_KEY=', content, re.MULTILINE):
+        content = re.sub(
+            r'^ZAI_API_KEY=.*$',
+            f'ZAI_API_KEY={request.api_key}',
+            content,
+            flags=re.MULTILINE
+        )
+    else:
+        # Add at the beginning after any header comments
+        lines = content.split('\n')
+        insert_idx = 0
+        for i, line in enumerate(lines):
+            if line.startswith('#') or line.strip() == '':
+                insert_idx = i + 1
+            else:
+                break
+        lines.insert(insert_idx, f'ZAI_API_KEY={request.api_key}')
+        content = '\n'.join(lines)
+
+    # Write the .env file
+    env_path.write_text(content)
+
+    # Also set in current environment so it takes effect immediately
+    os.environ["ZAI_API_KEY"] = request.api_key
+
+    return ApiKeyResponse(
+        success=True,
+        message="API key saved successfully",
+        masked_key=_mask_api_key(request.api_key),
     )
 
 

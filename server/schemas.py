@@ -131,6 +131,19 @@ class SetupStatus(BaseModel):
     credentials: bool
     node: bool
     npm: bool
+    api_key_configured: bool = False
+
+
+class ApiKeyRequest(BaseModel):
+    """Request schema for saving API key."""
+    api_key: str = Field(..., min_length=1, description="ZAI API key")
+
+
+class ApiKeyResponse(BaseModel):
+    """Response schema for API key operations."""
+    success: bool
+    message: str = ""
+    masked_key: str | None = None
 
 
 # ============================================================================

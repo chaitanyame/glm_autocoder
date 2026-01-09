@@ -12,6 +12,7 @@ import type {
   AgentStatusResponse,
   AgentActionResponse,
   SetupStatus,
+  ApiKeyResponse,
   DirectoryListResponse,
   PathValidationResponse,
   AssistantConversation,
@@ -173,6 +174,17 @@ export async function getSetupStatus(): Promise<SetupStatus> {
 
 export async function healthCheck(): Promise<{ status: string }> {
   return fetchJSON('/health')
+}
+
+export async function getApiKeyStatus(): Promise<ApiKeyResponse> {
+  return fetchJSON('/setup/api-key')
+}
+
+export async function saveApiKey(apiKey: string): Promise<ApiKeyResponse> {
+  return fetchJSON('/setup/api-key', {
+    method: 'POST',
+    body: JSON.stringify({ api_key: apiKey }),
+  })
 }
 
 // ============================================================================
