@@ -168,15 +168,19 @@ def main():
     
     args = parser.parse_args()
     
-    # Setup logging
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-    
     try:
-        # Initialize session manager
+        # Initialize config first
         config = get_config()
+        
+        # Setup logging based on config and args
+        log_level = logging.DEBUG if args.verbose else getattr(logging, config.log_level)
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            filename=config.log_file
+        )
+        
+        # Initialize session manager
         session_manager = SessionManager(config)
         
         # Route to appropriate mode

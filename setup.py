@@ -34,7 +34,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "glm-autocoder=main:main",
+            "glm-autocoder=glm_autocoder.main:main",
         ],
     },
 )

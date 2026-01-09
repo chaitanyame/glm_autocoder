@@ -3,7 +3,7 @@ Configuration management for GLM Autocoder
 """
 import os
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -74,9 +74,10 @@ class Config(BaseModel):
         description="Path to log file"
     )
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8"
+    )
 
 
 def get_config() -> Config:

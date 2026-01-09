@@ -89,13 +89,6 @@ class SessionManager:
         self.sessions: Dict[str, Session] = {}
         self.glm_model = GLMModel(self.config)
         self.claude_harness = ClaudeCodeHarness(self.config)
-        
-        # Setup logging
-        logging.basicConfig(
-            level=getattr(logging, self.config.log_level),
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            filename=self.config.log_file
-        )
     
     def create_session(self, session_id: Optional[str] = None) -> str:
         """

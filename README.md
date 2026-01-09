@@ -39,13 +39,13 @@ echo "GLM_API_KEY=your_glm_api_key_here" >> .env  # Optional
 Run an interactive chat session with Claude:
 
 ```bash
-python main.py --mode interactive --model claude
+python -m glm_autocoder.main --mode interactive --model claude
 ```
 
 Or with GLM (if configured):
 
 ```bash
-python main.py --mode interactive --model glm
+python -m glm_autocoder.main --mode interactive --model glm
 ```
 
 ### Code Generation
@@ -53,7 +53,7 @@ python main.py --mode interactive --model glm
 Generate code from a prompt:
 
 ```bash
-python main.py --mode generate --prompt "Create a REST API using Flask" --output api.py
+python -m glm_autocoder.main --mode generate --prompt "Create a REST API using Flask" --output api.py
 ```
 
 ### Code Review
@@ -61,7 +61,7 @@ python main.py --mode generate --prompt "Create a REST API using Flask" --output
 Review existing code:
 
 ```bash
-python main.py --mode review --code-file mycode.py --language python
+python -m glm_autocoder.main --mode review --code-file mycode.py --language python
 ```
 
 ## Programmatic Usage
