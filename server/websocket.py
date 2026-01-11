@@ -152,20 +152,29 @@ async def project_websocket(websocket: WebSocket, project_name: str):
     - Agent status changes
     - Agent stdout/stderr lines
     """
+    # Must connect (which calls accept) first before we can close with custom codes
+    await manager.connect(websocket, project_name)
+    
     if not validate_project_name(project_name):
+        logger.warning(f"Invalid project name: {project_name}")
+        await websocket.send_json({"type": "error", "content": "Invalid project name"})
         await websocket.close(code=4000, reason="Invalid project name")
         return
 
     project_dir = _get_project_path(project_name)
     if not project_dir:
+        logger.warning(f"Project not found in registry: {project_name}")
+        await websocket.send_json({"type": "error", "content": "Project not found in registry"})
         await websocket.close(code=4004, reason="Project not found in registry")
         return
 
     if not project_dir.exists():
+        logger.warning(f"Project directory not found: {project_dir}")
+        await websocket.send_json({"type": "error", "content": f"Project directory not found: {project_dir}"})
         await websocket.close(code=4004, reason="Project directory not found")
         return
 
-    await manager.connect(websocket, project_name)
+    logger.info(f"WebSocket connected for project: {project_name} at {project_dir}")
 
     # Get agent manager and register callbacks
     agent_manager = get_manager(project_name, project_dir, ROOT_DIR)

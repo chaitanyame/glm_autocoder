@@ -26,12 +26,16 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       # Optional: N8N webhook for progress notifications
       - PROGRESS_N8N_WEBHOOK_URL=${PROGRESS_N8N_WEBHOOK_URL:-}
+      # Host path to projects (for display in UI, allows VS Code to open)
+      - HOST_PROJECTS_DIR=${PROJECTS_DIR:-./_projects}
     
     volumes:
       # Mount projects directory - user's projects will be accessible here
-      - ${PROJECTS_DIR:-~/Projects}:/projects
-      # Persist registry database across restarts
-      - zlm-data:/root/.zlm-harness
+      # On Windows: set PROJECTS_DIR=C:\path\to\projects before running docker-compose
+      # On Linux/Mac: export PROJECTS_DIR=/path/to/projects
+      - ${PROJECTS_DIR:-./_projects}:/projects
+      # Persist registry database across restarts (~/.autocoder is where registry.py stores data)
+      - zlm-data:/root/.autocoder
     
     restart: unless-stopped
     

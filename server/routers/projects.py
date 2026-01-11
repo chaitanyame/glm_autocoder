@@ -6,6 +6,7 @@ API endpoints for project management.
 Uses project registry for path lookups instead of fixed generations/ directory.
 """
 
+import os
 import re
 import shutil
 from pathlib import Path
@@ -20,6 +21,11 @@ from ..schemas import (
     ProjectStats,
     ProjectSummary,
 )
+
+# Docker environment detection
+IS_DOCKER = os.environ.get("DOCKER_ENV") == "1"
+DOCKER_PROJECTS_DIR = "/projects"
+HOST_PROJECTS_DIR = os.environ.get("HOST_PROJECTS_DIR", "")
 
 # Lazy imports to avoid circular dependencies
 _imports_initialized = False
@@ -97,6 +103,40 @@ def get_project_stats(project_dir: Path) -> ProjectStats:
     )
 
 
+def get_host_path(container_path: str) -> str | None:
+    """
+    Convert a container path to host path for VS Code access.
+    
+    In Docker, projects are at /projects/<name> inside container.
+    This maps to HOST_PROJECTS_DIR/<name> on the host.
+    """
+    if not IS_DOCKER or not HOST_PROJECTS_DIR:
+        return None
+    
+    # If path starts with /projects, replace with host path
+    if container_path.startswith(DOCKER_PROJECTS_DIR):
+        relative = container_path[len(DOCKER_PROJECTS_DIR):]
+        # Normalize the host path
+        host_base = HOST_PROJECTS_DIR.rstrip("/\\")
+        
+        # If host path is relative (starts with . or no drive letter), 
+        # note this in the output for users to understand
+        if host_base.startswith("."):
+            # This is a relative path like ./_projects
+            # Return it as-is; user understands it's relative to docker-compose location
+            host_path = host_base + relative
+        else:
+            host_path = host_base + relative
+        
+        # Convert forward slashes to backslashes on Windows host (detect by drive letter or backslash)
+        if "\\" in HOST_PROJECTS_DIR or (len(HOST_PROJECTS_DIR) > 1 and HOST_PROJECTS_DIR[1] == ":"):
+            host_path = host_path.replace("/", "\\")
+        
+        return host_path
+    
+    return None
+
+
 @router.get("", response_model=list[ProjectSummary])
 async def list_projects():
     """List all registered projects."""
@@ -120,6 +160,7 @@ async def list_projects():
         result.append(ProjectSummary(
             name=name,
             path=info["path"],
+            host_path=get_host_path(info["path"]),
             has_spec=has_spec,
             stats=stats,
         ))
@@ -181,9 +222,11 @@ async def create_project(project: ProjectCreate):
             detail=f"Failed to register project: {e}"
         )
 
+    path_str = project_path.as_posix()
     return ProjectSummary(
         name=name,
-        path=project_path.as_posix(),
+        path=path_str,
+        host_path=get_host_path(path_str),
         has_spec=False,  # Just created, no spec yet
         stats=ProjectStats(passing=0, total=0, percentage=0.0),
     )
@@ -208,9 +251,11 @@ async def get_project(name: str):
     stats = get_project_stats(project_dir)
     prompts_dir = _get_project_prompts_dir(project_dir)
 
+    path_str = project_dir.as_posix()
     return ProjectDetail(
         name=name,
-        path=project_dir.as_posix(),
+        path=path_str,
+        host_path=get_host_path(path_str),
         has_spec=has_spec,
         stats=stats,
         prompts_dir=str(prompts_dir),
@@ -338,3 +383,77 @@ async def get_project_stats_endpoint(name: str):
         raise HTTPException(status_code=404, detail="Project directory not found")
 
     return get_project_stats(project_dir)
+
+
+# =============================================================================
+# Project Settings Endpoints
+# =============================================================================
+
+# Available models for project-level selection
+from ..schemas import ModelOption, ProjectSettingsResponse, ProjectSettingsUpdate
+
+AVAILABLE_MODELS = [
+    ModelOption(id="glm-4.7", name="GLM 4.7", description="Most capable model, best for complex tasks"),
+    ModelOption(id="glm-4.5-air", name="GLM 4.5 Air", description="Fast and efficient for simpler tasks"),
+]
+
+
+def _get_model_functions():
+    """Get model functions from registry with lazy import."""
+    import sys
+    root = Path(__file__).parent.parent.parent
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+    from registry import get_project_model, set_project_model
+    return get_project_model, set_project_model
+
+
+@router.get("/{name}/settings", response_model=ProjectSettingsResponse)
+async def get_project_settings(name: str):
+    """Get project-level settings (model configuration)."""
+    _, _, get_project_path, _, _ = _get_registry_functions()
+    get_project_model, _ = _get_model_functions()
+
+    name = validate_project_name(name)
+    project_dir = get_project_path(name)
+
+    if not project_dir:
+        raise HTTPException(status_code=404, detail=f"Project '{name}' not found")
+
+    selected_model = get_project_model(name)
+
+    return ProjectSettingsResponse(
+        selected_model=selected_model,
+        available_models=AVAILABLE_MODELS,
+    )
+
+
+@router.put("/{name}/settings", response_model=ProjectSettingsResponse)
+async def update_project_settings(name: str, settings: ProjectSettingsUpdate):
+    """Update project-level settings (model configuration)."""
+    _, _, get_project_path, _, _ = _get_registry_functions()
+    get_project_model, set_project_model = _get_model_functions()
+
+    name = validate_project_name(name)
+    project_dir = get_project_path(name)
+
+    if not project_dir:
+        raise HTTPException(status_code=404, detail=f"Project '{name}' not found")
+
+    if settings.selected_model:
+        # Validate model is in available list
+        valid_models = [m.id for m in AVAILABLE_MODELS]
+        if settings.selected_model not in valid_models:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid model. Must be one of: {', '.join(valid_models)}"
+            )
+        set_project_model(name, settings.selected_model)
+
+    selected_model = get_project_model(name)
+
+    return ProjectSettingsResponse(
+        selected_model=selected_model,
+        available_models=AVAILABLE_MODELS,
+    )

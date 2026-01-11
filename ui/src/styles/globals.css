@@ -163,6 +163,35 @@
     transform: none;
   }
 
+  /* Small icon button */
+  .neo-button-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    color: #1a1a1a;
+    background-color: #ffffff;
+    border: 2px solid #1a1a1a;
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
+    transition: transform var(--transition-neo-fast), box-shadow var(--transition-neo-fast);
+    cursor: pointer;
+  }
+
+  .neo-button-sm:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0px rgba(0, 0, 0, 1);
+  }
+
+  .neo-button-sm:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 1);
+  }
+
+  /* Cream background utility */
+  .neo-cream {
+    background-color: #fffef5;
+  }
+
   /* Inputs */
   .neo-input {
     width: 100%;

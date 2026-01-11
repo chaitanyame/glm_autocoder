@@ -75,7 +75,8 @@ COPY .claude/ ./.claude/
 COPY --from=frontend-builder /app/ui/dist ./ui/dist
 
 # Create directories for runtime
-RUN mkdir -p /projects /root/.zlm-harness
+# /projects is where projects are mounted, ~/.autocoder is where registry.py stores its database
+RUN mkdir -p /projects /root/.autocoder
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1

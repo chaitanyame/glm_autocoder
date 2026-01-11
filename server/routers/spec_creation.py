@@ -184,21 +184,30 @@ async def spec_chat_websocket(websocket: WebSocket, project_name: str):
     - {"type": "error", "content": "..."} - Error message
     - {"type": "pong"} - Keep-alive pong
     """
+    # Must accept WebSocket first before we can send any messages or close with custom codes
+    await websocket.accept()
+    
     if not validate_project_name(project_name):
+        logger.warning(f"Invalid project name: {project_name}")
+        await websocket.send_json({"type": "error", "content": "Invalid project name"})
         await websocket.close(code=4000, reason="Invalid project name")
         return
 
     # Look up project directory from registry
     project_dir = _get_project_path(project_name)
     if not project_dir:
+        logger.warning(f"Project not found in registry: {project_name}")
+        await websocket.send_json({"type": "error", "content": "Project not found in registry"})
         await websocket.close(code=4004, reason="Project not found in registry")
         return
 
     if not project_dir.exists():
+        logger.warning(f"Project directory not found: {project_dir}")
+        await websocket.send_json({"type": "error", "content": f"Project directory not found: {project_dir}"})
         await websocket.close(code=4004, reason="Project directory not found")
         return
 
-    await websocket.accept()
+    logger.info(f"WebSocket connected for project: {project_name} at {project_dir}")
 
     session: Optional[SpecChatSession] = None
 

@@ -213,6 +213,8 @@ function App() {
               total={progress.total}
               percentage={progress.percentage}
               isConnected={wsState.isConnected}
+              hostPath={projects?.find(p => p.name === selectedProject)?.host_path}
+              projectName={selectedProject}
             />
 
             {/* Agent Thought - shows latest agent narrative */}

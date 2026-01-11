@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { X, Eye, EyeOff, Loader2, Settings as SettingsIcon, Check, AlertCircle } from 'lucide-react'
+import { X, Eye, EyeOff, Loader2, Settings as SettingsIcon, Check, AlertCircle, Wifi, WifiOff } from 'lucide-react'
 import { getSettings, updateSettings } from '../lib/api'
-import type { Settings, ModelOption } from '../lib/types'
+import type { Settings } from '../lib/types'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -18,7 +18,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Form state
   const [apiKey, setApiKey] = useState('')
   const [showApiKey, setShowApiKey] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('')
 
   // Load settings on open
   useEffect(() => {
@@ -33,7 +32,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     try {
       const data = await getSettings()
       setSettings(data)
-      setSelectedModel(data.selected_model)
       setApiKey('') // Don't pre-fill API key for security
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings')
@@ -48,26 +46,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setSuccess(null)
 
     try {
-      const updates: { api_key?: string; selected_model?: string } = {}
-      
-      if (apiKey.trim()) {
-        updates.api_key = apiKey.trim()
-      }
-      
-      if (selectedModel && selectedModel !== settings?.selected_model) {
-        updates.selected_model = selectedModel
-      }
-
-      if (Object.keys(updates).length === 0) {
-        setError('No changes to save')
+      if (!apiKey.trim()) {
+        setError('Please enter an API key')
         setIsSaving(false)
         return
       }
 
-      const updated = await updateSettings(updates)
+      const updated = await updateSettings({ api_key: apiKey.trim() })
       setSettings(updated)
       setApiKey('')
-      setSuccess('Settings saved successfully!')
+      setSuccess('API key saved successfully!')
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000)
@@ -110,13 +98,50 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* API Connection Status */}
+            <div className={`p-4 border-3 rounded ${
+              settings?.api_key_configured 
+                ? 'border-[var(--color-neo-done)] bg-[var(--color-neo-done)]/10' 
+                : 'border-[var(--color-neo-danger)] bg-[var(--color-neo-danger)]/10'
+            }`}>
+              <div className="flex items-center gap-3">
+                {settings?.api_key_configured ? (
+                  <>
+                    <Wifi size={24} className="text-[var(--color-neo-done)]" />
+                    <div>
+                      <div className="font-display font-bold text-[var(--color-neo-done)]">
+                        API Connected
+                      </div>
+                      <div className="text-sm text-[var(--color-neo-text-secondary)]">
+                        Key: <code className="font-mono">{settings.api_key_masked}</code>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff size={24} className="text-[var(--color-neo-danger)]" />
+                    <div>
+                      <div className="font-display font-bold text-[var(--color-neo-danger)]">
+                        API Not Connected
+                      </div>
+                      <div className="text-sm text-[var(--color-neo-text-secondary)]">
+                        Enter your Z.AI API key below to connect
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* API Key Section */}
             <div>
               <label className="block font-display font-bold mb-2">
-                Z.AI API Key
+                {settings?.api_key_configured ? 'Update API Key' : 'Z.AI API Key'}
               </label>
               <p className="text-sm text-[var(--color-neo-text-secondary)] mb-3">
-                Required for GLM model support.{' '}
+                {settings?.api_key_configured 
+                  ? 'Enter a new key to replace the existing one.' 
+                  : 'Required for GLM model support.'}{' '}
                 <a
                   href="https://api.z.ai/"
                   target="_blank"
@@ -126,17 +151,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   Get your key →
                 </a>
               </p>
-              
-              {settings?.api_key_configured && (
-                <div className="mb-3 p-3 bg-[var(--color-neo-done)]/20 border-2 border-[var(--color-neo-done)] rounded">
-                  <div className="flex items-center gap-2">
-                    <Check size={16} className="text-[var(--color-neo-done)]" />
-                    <span className="text-sm">
-                      Current key: <code className="font-mono">{settings.api_key_masked}</code>
-                    </span>
-                  </div>
-                </div>
-              )}
 
               <div className="relative">
                 <input
@@ -156,45 +170,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             </div>
 
-            {/* Model Selection */}
-            <div>
-              <label className="block font-display font-bold mb-2">
-                Model
-              </label>
-              <p className="text-sm text-[var(--color-neo-text-secondary)] mb-3">
-                Select the AI model for code generation.
+            {/* Model Selection Note */}
+            <div className="p-3 bg-[var(--color-neo-bg-alt)] border-2 border-[var(--color-neo-border)] rounded">
+              <p className="text-sm text-[var(--color-neo-text-secondary)]">
+                <strong>Note:</strong> Model selection is now per-project. Select a model from the project dashboard when running the agent.
               </p>
-              
-              <div className="space-y-2">
-                {settings?.available_models.map((model: ModelOption) => (
-                  <label
-                    key={model.id}
-                    className={`flex items-start gap-3 p-3 border-3 cursor-pointer transition-colors ${
-                      selectedModel === model.id
-                        ? 'border-[var(--color-neo-accent)] bg-[var(--color-neo-accent)]/10'
-                        : 'border-[var(--color-neo-border)] hover:border-[var(--color-neo-accent)]/50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="model"
-                      value={model.id}
-                      checked={selectedModel === model.id}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <div className="font-display font-bold">{model.name}</div>
-                      <div className="text-sm text-[var(--color-neo-text-secondary)]">
-                        {model.description}
-                      </div>
-                      <code className="text-xs text-[var(--color-neo-text-secondary)] font-mono">
-                        {model.id}
-                      </code>
-                    </div>
-                  </label>
-                ))}
-              </div>
             </div>
 
             {/* Base URL (read-only) */}
@@ -228,17 +208,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 onClick={onClose}
                 className="neo-btn neo-btn-secondary px-6 py-2"
               >
-                Cancel
+                Close
               </button>
               <button
                 onClick={handleSave}
-                disabled={isSaving || (!apiKey.trim() && selectedModel === settings?.selected_model)}
+                disabled={isSaving || !apiKey.trim()}
                 className="neo-btn neo-btn-primary px-6 py-2 disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  'Save Changes'
+                  'Save API Key'
                 )}
               </button>
             </div>

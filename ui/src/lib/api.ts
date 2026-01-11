@@ -19,6 +19,8 @@ import type {
   PathValidationResponse,
   AssistantConversation,
   AssistantConversationDetail,
+  ProjectSettings,
+  ProjectSettingsUpdate,
 } from './types'
 
 const API_BASE = '/api'
@@ -199,6 +201,24 @@ export async function getSettings(): Promise<Settings> {
 
 export async function updateSettings(settings: SettingsUpdate): Promise<Settings> {
   return fetchJSON('/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
+}
+
+// ============================================================================
+// Project Settings API (per-project model configuration)
+// ============================================================================
+
+export async function getProjectSettings(projectName: string): Promise<ProjectSettings> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/settings`)
+}
+
+export async function updateProjectSettings(
+  projectName: string,
+  settings: ProjectSettingsUpdate
+): Promise<ProjectSettings> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/settings`, {
     method: 'PUT',
     body: JSON.stringify(settings),
   })

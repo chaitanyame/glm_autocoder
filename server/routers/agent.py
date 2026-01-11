@@ -27,6 +27,17 @@ def _get_project_path(project_name: str) -> Path:
     return get_project_path(project_name)
 
 
+def _get_project_model(project_name: str) -> str:
+    """Get the selected model for a project from registry."""
+    import sys
+    root = Path(__file__).parent.parent.parent
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+    from registry import get_project_model
+    return get_project_model(project_name)
+
+
 router = APIRouter(prefix="/api/projects/{project_name}/agent", tags=["agent"])
 
 # Root directory for process manager
@@ -84,7 +95,10 @@ async def start_agent(
     # Use API key from request if provided, otherwise read from environment
     api_key = request.api_key or os.environ.get("AUTO_CODER_API_KEY")
 
-    success, message = await manager.start(yolo_mode=request.yolo_mode, api_key=api_key)
+    # Get the project's selected model from registry
+    model = _get_project_model(project_name)
+
+    success, message = await manager.start(yolo_mode=request.yolo_mode, api_key=api_key, model=model)
 
     return AgentActionResponse(
         success=success,

@@ -34,6 +34,7 @@ class ProjectSummary(BaseModel):
     """Summary of a project for list view."""
     name: str
     path: str
+    host_path: str | None = None  # Host machine path (for VS Code)
     has_spec: bool
     stats: ProjectStats
 
@@ -42,6 +43,7 @@ class ProjectDetail(BaseModel):
     """Detailed project information."""
     name: str
     path: str
+    host_path: str | None = None  # Host machine path (for VS Code)
     has_spec: bool
     stats: ProjectStats
     prompts_dir: str
@@ -170,6 +172,21 @@ class ApiKeyResponse(BaseModel):
     success: bool
     message: str = ""
     masked_key: str | None = None
+
+
+# ============================================================================
+# Project Settings Schemas
+# ============================================================================
+
+class ProjectSettingsResponse(BaseModel):
+    """Response for project-level settings."""
+    selected_model: str = "glm-4.7"
+    available_models: list[ModelOption] = []
+
+
+class ProjectSettingsUpdate(BaseModel):
+    """Request to update project settings."""
+    selected_model: str | None = None
 
 
 # ============================================================================

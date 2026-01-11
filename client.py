@@ -205,7 +205,12 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
     if not yolo_mode:
         # Include Playwright MCP server for browser automation (standard mode only)
         # Use headless mode in Docker/server environments (no display)
-        playwright_args = ["@playwright/mcp@latest", "--viewport-size", "1280x720"]
+        # Use --isolated to prevent browser profile conflicts between projects
+        playwright_args = [
+            "@playwright/mcp@latest",
+            "--viewport-size", "1280x720",
+            "--isolated",  # Each session gets an independent ephemeral browser context
+        ]
         if os.environ.get("DOCKER_ENV") == "1" or not os.environ.get("DISPLAY"):
             playwright_args.append("--headless")
         

@@ -13,6 +13,7 @@ export interface ProjectStats {
 export interface ProjectSummary {
   name: string
   path: string
+  host_path?: string | null  // Host machine path (for VS Code)
   has_spec: boolean
   stats: ProjectStats
 }
@@ -131,6 +132,16 @@ export interface ApiKeyResponse {
   success: boolean
   message: string
   masked_key: string | null
+}
+
+// Project Settings types (per-project model configuration)
+export interface ProjectSettings {
+  selected_model: string
+  available_models: ModelOption[]
+}
+
+export interface ProjectSettingsUpdate {
+  selected_model?: string
 }
 
 // WebSocket message types
