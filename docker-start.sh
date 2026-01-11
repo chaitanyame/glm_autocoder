@@ -99,13 +99,19 @@ echo "  Stop:         $COMPOSE_CMD down"
 echo "  Restart:      $COMPOSE_CMD restart"
 echo ""
 
-# Open browser
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    sleep 3
-    open "http://localhost:8888"
-elif command -v xdg-open &> /dev/null; then
-    sleep 3
-    xdg-open "http://localhost:8888"
+# Open browser only if we have a display (not headless)
+if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sleep 3
+        open "http://localhost:8888"
+    elif command -v xdg-open &> /dev/null; then
+        sleep 3
+        xdg-open "http://localhost:8888"
+    fi
+else
+    echo "Running in headless mode - no browser opened."
+    echo "Access the UI at http://<your-server-ip>:8888"
+    echo ""
 fi
 
 # Show logs

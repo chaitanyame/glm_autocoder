@@ -1,0 +1,80 @@
+# =============================================================================
+# ZLM Code Harness - Server Deployment (Ubuntu/Linux headless)
+# =============================================================================
+# Use this for deploying to a remote server without a GUI.
+#
+# Usage:
+#   docker compose -f docker-compose.server.yml up -d
+#
+# Required environment variables:
+#   ZAI_API_KEY - Your Z.AI API key (or ANTHROPIC_API_KEY)
+#
+# Optional:
+#   CORS_ORIGINS - Comma-separated list of allowed origins
+#                  e.g., http://your-server:8888,http://192.168.1.100:8888
+# =============================================================================
+
+services:
+  zlm-harness:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zlm-code-harness:latest
+    container_name: zlm-code-harness
+    
+    ports:
+      - "8888:8888"
+    
+    environment:
+      # API Key for GLM model support (required)
+      - ZAI_API_KEY=${ZAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      
+      # Server mode settings
+      - DOCKER_ENV=1
+      - ALLOW_REMOTE_ACCESS=true
+      
+      # CORS - add your server's IP/hostname here
+      # Example: http://192.168.1.100:8888,http://myserver.local:8888
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      
+      # Headless browser settings
+      - DISPLAY=:99
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+      
+      # Optional: N8N webhook for progress notifications
+      - PROGRESS_N8N_WEBHOOK_URL=${PROGRESS_N8N_WEBHOOK_URL:-}
+    
+    volumes:
+      # Mount projects directory
+      - ${PROJECTS_DIR:-./projects}:/projects
+      # Persist registry database across restarts
+      - zlm-data:/root/.zlm-harness
+    
+    # Start Xvfb before the main process for headless Playwright
+    command: >
+      sh -c "Xvfb :99 -screen 0 1280x720x24 &
+             sleep 1 &&
+             python -m uvicorn server.main:app --host 0.0.0.0 --port 8888"
+    
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 4G  # Higher for Playwright browser
+        reservations:
+          memory: 1G
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+# Named volume for persistent data
+volumes:
+  zlm-data:
+    driver: local

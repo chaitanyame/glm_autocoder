@@ -6,6 +6,7 @@ Main entry point for the Autonomous Coding UI server.
 Provides REST API, WebSocket, and static file serving.
 """
 
+import os
 import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -51,15 +52,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS - allow only localhost origins for security
+# CORS - configurable via environment variable for server deployments
+# Set CORS_ORIGINS=http://your-server:8888 for remote access
+_default_origins = [
+    "http://localhost:5173",      # Vite dev server
+    "http://127.0.0.1:5173",
+    "http://localhost:8888",      # Production
+    "http://127.0.0.1:8888",
+]
+_env_origins = os.environ.get("CORS_ORIGINS", "").split(",")
+_cors_origins = [o.strip() for o in _env_origins if o.strip()] or _default_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",      # Vite dev server
-        "http://127.0.0.1:5173",
-        "http://localhost:8888",      # Production
-        "http://127.0.0.1:8888",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -72,17 +78,24 @@ app.add_middleware(
 
 @app.middleware("http")
 async def require_localhost(request: Request, call_next):
-    """Only allow requests from localhost or Docker internal networks."""
-    import os
+    """Only allow requests from localhost or Docker internal networks.
+    
+    Set ALLOW_REMOTE_ACCESS=true to allow all remote connections (for server deployments).
+    """
     client_host = request.client.host if request.client else None
 
+    # Check if remote access is explicitly allowed (for server deployments)
+    allow_remote = os.environ.get("ALLOW_REMOTE_ACCESS", "").lower() in ("true", "1", "yes")
+    
     # In Docker, allow requests from Docker bridge networks (172.x.x.x)
-    # Also allow localhost connections
+    # Also allow localhost connections and private networks
     allowed = (
+        allow_remote or  # Explicit remote access flag
         client_host is None or
         client_host in ("127.0.0.1", "::1", "localhost") or
         client_host.startswith("172.") or  # Docker bridge network
         client_host.startswith("192.168.") or  # Docker host network
+        client_host.startswith("10.") or  # Private network
         os.environ.get("DOCKER_ENV") == "1"  # Explicit Docker flag
     )
 

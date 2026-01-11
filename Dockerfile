@@ -29,10 +29,25 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 FROM python:3.12-slim
 
-# Install system dependencies
+# Install system dependencies including Xvfb for headless browser support
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    xvfb \
+    libgbm1 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (needed for Claude CLI)
@@ -65,6 +80,12 @@ RUN mkdir -p /projects /root/.zlm-harness
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV DISPLAY=:99
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV DOCKER_ENV=1
+
+# Install Playwright browsers
+RUN npx playwright install chromium
 
 # Expose the web UI port
 EXPOSE 8888
