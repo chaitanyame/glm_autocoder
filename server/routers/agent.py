@@ -44,6 +44,27 @@ router = APIRouter(prefix="/api/projects/{project_name}/agent", tags=["agent"])
 ROOT_DIR = Path(__file__).parent.parent.parent
 
 
+def _get_api_key_from_env() -> str | None:
+    """Get configured API key (ZAI_API_KEY or ANTHROPIC_API_KEY) from env or .env."""
+    # First check environment variables
+    api_key = os.environ.get("ZAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if api_key and api_key != "your-api-key-here":
+        return api_key
+
+    # Check .env file in project root
+    env_path = ROOT_DIR / ".env"
+    if env_path.exists():
+        content = env_path.read_text(encoding="utf-8", errors="ignore")
+        # Look for ZAI_API_KEY first, then ANTHROPIC_API_KEY
+        for key_name in ["ZAI_API_KEY", "ANTHROPIC_API_KEY"]:
+            match = re.search(rf"^{key_name}=(.+)$", content, re.MULTILINE)
+            if match:
+                value = match.group(1).strip()
+                if value and value != "your-api-key-here":
+                    return value
+    return None
+
+
 def validate_project_name(name: str) -> str:
     """Validate and sanitize project name to prevent path traversal."""
     if not re.match(r'^[a-zA-Z0-9_-]{1,50}$', name):
@@ -92,8 +113,14 @@ async def start_agent(
     """Start the agent for a project."""
     manager = get_project_manager(project_name)
 
-    # Use API key from request if provided, otherwise read from environment
-    api_key = request.api_key or os.environ.get("AUTO_CODER_API_KEY")
+    # Require an API key before starting.
+    # Prefer an explicit key from the request, otherwise use configured key from env/.env.
+    api_key = request.api_key or _get_api_key_from_env()
+    if not api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="API key is required to start the agent. Configure ZAI_API_KEY or ANTHROPIC_API_KEY in Settings or .env.",
+        )
 
     # Get the project's selected model from registry
     model = _get_project_model(project_name)

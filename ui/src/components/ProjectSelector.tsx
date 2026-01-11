@@ -117,10 +117,10 @@ export function ProjectSelector({
                     </button>
                     <button
                       onClick={(e) => handleDeleteProject(project.name, e)}
-                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-[var(--color-neo-error)] hover:text-white rounded transition-all"
+                      className="p-1.5 text-gray-400 hover:text-white hover:bg-red-500 rounded transition-all ml-2"
                       title="Delete project"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 ))}
@@ -177,7 +177,7 @@ export function ProjectSelector({
               </button>
               <button
                 onClick={confirmDelete}
-                className="neo-btn bg-[var(--color-neo-error)] text-white"
+                className="neo-btn bg-red-500 text-white hover:bg-red-600"
                 disabled={deleteProject.isPending}
               >
                 {deleteProject.isPending ? (

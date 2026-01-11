@@ -183,6 +183,7 @@ function App() {
                     projectName={selectedProject}
                     status={wsState.agentStatus}
                     yoloMode={agentStatusData?.yolo_mode ?? false}
+                    isConnected={wsState.isConnected}
                   />
                 </>
               )}

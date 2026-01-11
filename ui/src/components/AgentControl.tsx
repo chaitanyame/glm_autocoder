@@ -5,6 +5,7 @@ import {
   useStopAgent,
   usePauseAgent,
   useResumeAgent,
+  useSetupStatus,
 } from '../hooks/useProjects'
 import type { AgentStatus } from '../lib/types'
 
@@ -12,10 +13,21 @@ interface AgentControlProps {
   projectName: string
   status: AgentStatus
   yoloMode?: boolean  // From server status - whether currently running in YOLO mode
+  isConnected?: boolean
 }
 
-export function AgentControl({ projectName, status, yoloMode = false }: AgentControlProps) {
+export function AgentControl({ projectName, status, yoloMode = false, isConnected = true }: AgentControlProps) {
   const [yoloEnabled, setYoloEnabled] = useState(false)
+
+  const { data: setupStatus } = useSetupStatus()
+  const isApiKeyConfigured = setupStatus?.api_key_configured ?? false
+
+  const canStartOrResume = isConnected && isApiKeyConfigured
+  const disabledReason = !isConnected
+    ? 'Offline: wait for connection to be Online'
+    : !isApiKeyConfigured
+      ? 'API key required: set it in Setup (gear icon)'
+      : ''
 
   const startAgent = useStartAgent(projectName)
   const stopAgent = useStopAgent(projectName)
@@ -28,10 +40,16 @@ export function AgentControl({ projectName, status, yoloMode = false }: AgentCon
     pauseAgent.isPending ||
     resumeAgent.isPending
 
-  const handleStart = () => startAgent.mutate({ yoloMode: yoloEnabled })
+  const handleStart = () => {
+    if (!canStartOrResume) return
+    startAgent.mutate({ yoloMode: yoloEnabled })
+  }
   const handleStop = () => stopAgent.mutate()
   const handlePause = () => pauseAgent.mutate()
-  const handleResume = () => resumeAgent.mutate()
+  const handleResume = () => {
+    if (!canStartOrResume) return
+    resumeAgent.mutate()
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -59,14 +77,15 @@ export function AgentControl({ projectName, status, yoloMode = false }: AgentCon
                 yoloEnabled ? 'neo-btn-warning' : 'neo-btn-secondary'
               }`}
               title="YOLO Mode: Skip testing for rapid prototyping"
+              disabled={!canStartOrResume || isLoading}
             >
               <Zap size={18} className={yoloEnabled ? 'text-yellow-900' : ''} />
             </button>
             <button
               onClick={handleStart}
-              disabled={isLoading}
+              disabled={isLoading || !canStartOrResume}
               className="neo-btn neo-btn-success text-sm py-2 px-3"
-              title={yoloEnabled ? "Start Agent (YOLO Mode)" : "Start Agent"}
+              title={!canStartOrResume ? disabledReason : (yoloEnabled ? "Start Agent (YOLO Mode)" : "Start Agent")}
             >
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />
@@ -102,9 +121,9 @@ export function AgentControl({ projectName, status, yoloMode = false }: AgentCon
           <>
             <button
               onClick={handleResume}
-              disabled={isLoading}
+              disabled={isLoading || !canStartOrResume}
               className="neo-btn neo-btn-success text-sm py-2 px-3"
-              title="Resume Agent"
+              title={!canStartOrResume ? disabledReason : 'Resume Agent'}
             >
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />
