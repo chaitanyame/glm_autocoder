@@ -1,0 +1,49 @@
+# =============================================================================
+# ZLM Code Harness - Docker Compose Configuration
+# =============================================================================
+# Usage:
+#   docker-compose up        # Start the service
+#   docker-compose up -d     # Start in background
+#   docker-compose down      # Stop the service
+#   docker-compose logs -f   # View logs
+# =============================================================================
+
+services:
+  zlm-harness:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zlm-code-harness:latest
+    container_name: zlm-code-harness
+    
+    ports:
+      - "8888:8888"
+    
+    environment:
+      # API Key for GLM model support (Z.AI proxy)
+      - ZAI_API_KEY=${ZAI_API_KEY:-}
+      # Alternative: Direct Anthropic API key
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Optional: N8N webhook for progress notifications
+      - PROGRESS_N8N_WEBHOOK_URL=${PROGRESS_N8N_WEBHOOK_URL:-}
+    
+    volumes:
+      # Mount projects directory - user's projects will be accessible here
+      - ${PROJECTS_DIR:-~/Projects}:/projects
+      # Persist registry database across restarts
+      - zlm-data:/root/.zlm-harness
+    
+    restart: unless-stopped
+    
+    # Resource limits (adjust as needed)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+# Named volume for persistent data
+volumes:
+  zlm-data:
+    driver: local

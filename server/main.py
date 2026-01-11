@@ -72,11 +72,21 @@ app.add_middleware(
 
 @app.middleware("http")
 async def require_localhost(request: Request, call_next):
-    """Only allow requests from localhost."""
+    """Only allow requests from localhost or Docker internal networks."""
+    import os
     client_host = request.client.host if request.client else None
 
-    # Allow localhost connections
-    if client_host not in ("127.0.0.1", "::1", "localhost", None):
+    # In Docker, allow requests from Docker bridge networks (172.x.x.x)
+    # Also allow localhost connections
+    allowed = (
+        client_host is None or
+        client_host in ("127.0.0.1", "::1", "localhost") or
+        client_host.startswith("172.") or  # Docker bridge network
+        client_host.startswith("192.168.") or  # Docker host network
+        os.environ.get("DOCKER_ENV") == "1"  # Explicit Docker flag
+    )
+
+    if not allowed:
         raise HTTPException(status_code=403, detail="Localhost access only")
 
     return await call_next(request)

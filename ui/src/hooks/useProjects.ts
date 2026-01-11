@@ -111,7 +111,7 @@ export function useStartAgent(projectName: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (yoloMode: boolean = false) => api.startAgent(projectName, yoloMode),
+    mutationFn: ({ yoloMode = false }: { yoloMode?: boolean } = {}) => api.startAgent(projectName, yoloMode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-status', projectName] })
     },
