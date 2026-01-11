@@ -84,6 +84,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV DISPLAY=:99
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV DOCKER_ENV=1
+# Increase websockets library max header line length for large browser cookies (e.g., Supabase auth tokens)
+ENV WEBSOCKETS_MAX_LINE_LENGTH=65536
 
 # Install Playwright browsers
 RUN npx playwright install chromium
@@ -96,4 +98,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8888/api/health || exit 1
 
 # Default command: run the FastAPI server
-CMD ["python", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8888"]
+# Use h11 with larger header size limit to handle browser cookies (e.g., Supabase auth tokens)
+CMD ["python", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8888", "--http", "h11", "--h11-max-incomplete-event-size", "65536"]

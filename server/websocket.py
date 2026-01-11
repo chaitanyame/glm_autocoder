@@ -152,8 +152,10 @@ async def project_websocket(websocket: WebSocket, project_name: str):
     - Agent status changes
     - Agent stdout/stderr lines
     """
+    logger.info(f"Project WebSocket endpoint called for project: {project_name}")
     # Must connect (which calls accept) first before we can close with custom codes
     await manager.connect(websocket, project_name)
+    logger.info(f"Project WebSocket connected for project: {project_name}")
     
     if not validate_project_name(project_name):
         logger.warning(f"Invalid project name: {project_name}")

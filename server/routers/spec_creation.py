@@ -184,8 +184,10 @@ async def spec_chat_websocket(websocket: WebSocket, project_name: str):
     - {"type": "error", "content": "..."} - Error message
     - {"type": "pong"} - Keep-alive pong
     """
+    logger.info(f"Spec WebSocket endpoint called for project: {project_name}")
     # Must accept WebSocket first before we can send any messages or close with custom codes
     await websocket.accept()
+    logger.info(f"Spec WebSocket accepted for project: {project_name}")
     
     if not validate_project_name(project_name):
         logger.warning(f"Invalid project name: {project_name}")

@@ -44,6 +44,12 @@ async def lifespan(app: FastAPI):
     await cleanup_assistant_sessions()
 
 
+import logging
+logging.basicConfig(level=logging.INFO)
+raw_logger = logging.getLogger("raw_asgi")
+raw_logger.setLevel(logging.DEBUG)
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Autonomous Coding UI",
@@ -51,6 +57,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+# Add raw ASGI middleware to log all WebSocket connections
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Scope, Receive, Send
+
+
+@app.middleware("http")
+async def log_all_requests(request, call_next):
+    """Log all HTTP requests including WebSocket upgrades."""
+    raw_logger.info(f"HTTP Request: {request.method} {request.url.path} headers={dict(request.headers)}")
+    return await call_next(request)
 
 # CORS - configurable via environment variable for server deployments
 # Set CORS_ORIGINS=http://your-server:8888 for remote access
@@ -70,6 +88,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+import logging
+logger = logging.getLogger(__name__)
+
+# ============================================================================
+# Debug Middleware - log all incoming requests
+# ============================================================================
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all incoming HTTP requests for debugging."""
+    upgrade = request.headers.get("upgrade", "").lower()
+    if upgrade == "websocket":
+        logger.info(f"WebSocket upgrade request: {request.url.path} from {request.client.host if request.client else 'unknown'}")
+    return await call_next(request)
 
 
 # ============================================================================
@@ -120,6 +153,21 @@ app.include_router(assistant_chat_router)
 # ============================================================================
 # WebSocket Endpoint
 # ============================================================================
+
+@app.websocket("/ws/test")
+async def websocket_test(websocket: WebSocket):
+    """Simple WebSocket test endpoint."""
+    logger.info("Test WebSocket: accepting connection")
+    await websocket.accept()
+    logger.info("Test WebSocket: connection accepted")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            logger.info(f"Test WebSocket: received {data}")
+            await websocket.send_text(f"Echo: {data}")
+    except Exception as e:
+        logger.info(f"Test WebSocket: connection closed - {e}")
+
 
 @app.websocket("/ws/projects/{project_name}")
 async def websocket_endpoint(websocket: WebSocket, project_name: str):
