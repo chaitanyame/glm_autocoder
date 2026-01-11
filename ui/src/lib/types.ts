@@ -107,6 +107,26 @@ export interface SetupStatus {
   api_key_configured: boolean
 }
 
+// Settings types
+export interface ModelOption {
+  id: string
+  name: string
+  description: string
+}
+
+export interface Settings {
+  api_key_configured: boolean
+  api_key_masked: string | null
+  selected_model: string
+  available_models: ModelOption[]
+  base_url: string
+}
+
+export interface SettingsUpdate {
+  api_key?: string
+  selected_model?: string
+}
+
 export interface ApiKeyResponse {
   success: boolean
   message: string

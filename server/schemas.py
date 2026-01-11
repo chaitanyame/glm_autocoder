@@ -134,6 +134,32 @@ class SetupStatus(BaseModel):
     api_key_configured: bool = False
 
 
+# ============================================================================
+# Settings Schemas
+# ============================================================================
+
+class ModelOption(BaseModel):
+    """Available model option."""
+    id: str
+    name: str
+    description: str = ""
+
+
+class SettingsResponse(BaseModel):
+    """Current application settings."""
+    api_key_configured: bool
+    api_key_masked: str | None = None
+    selected_model: str = "glm-4.7"
+    available_models: list[ModelOption] = []
+    base_url: str = "https://api.z.ai/api/anthropic"
+
+
+class SettingsUpdate(BaseModel):
+    """Request to update settings."""
+    api_key: str | None = None
+    selected_model: str | None = None
+
+
 class ApiKeyRequest(BaseModel):
     """Request schema for saving API key."""
     api_key: str = Field(..., min_length=1, description="ZAI API key")

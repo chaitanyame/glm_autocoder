@@ -24,7 +24,7 @@ from .routers import (
     projects_router,
     spec_creation_router,
 )
-from .schemas import SetupStatus, ApiKeyRequest, ApiKeyResponse
+from .schemas import SetupStatus, ApiKeyRequest, ApiKeyResponse, SettingsResponse, SettingsUpdate, ModelOption
 from .services.assistant_chat_session import cleanup_all_sessions as cleanup_assistant_sessions
 from .services.process_manager import cleanup_all_managers
 from .websocket import project_websocket
@@ -258,6 +258,98 @@ async def save_api_key(request: ApiKeyRequest):
         success=True,
         message="API key saved successfully",
         masked_key=_mask_api_key(request.api_key),
+    )
+
+
+# ============================================================================
+# Settings Endpoints
+# ============================================================================
+
+# Available models for selection
+AVAILABLE_MODELS = [
+    ModelOption(id="glm-4.7", name="GLM 4.7", description="Most capable model, best for complex tasks"),
+    ModelOption(id="glm-4.5-air", name="GLM 4.5 Air", description="Fast and efficient for simpler tasks"),
+]
+
+
+def _get_selected_model() -> str:
+    """Get the currently selected model from .env file."""
+    env_path = ROOT_DIR / ".env"
+    if env_path.exists():
+        import re
+        content = env_path.read_text()
+        match = re.search(r'^SELECTED_MODEL=(.+)$', content, re.MULTILINE)
+        if match:
+            return match.group(1).strip()
+    return "glm-4.7"  # Default model
+
+
+def _save_setting_to_env(key: str, value: str) -> None:
+    """Save a setting to the .env file."""
+    import re
+    
+    env_path = ROOT_DIR / ".env"
+    example_path = ROOT_DIR / ".env.example"
+    
+    if env_path.exists():
+        content = env_path.read_text()
+    elif example_path.exists():
+        content = example_path.read_text()
+    else:
+        content = "# ZLM Code Harness Configuration\n"
+    
+    # Update or add the setting
+    if re.search(rf'^{key}=', content, re.MULTILINE):
+        content = re.sub(
+            rf'^{key}=.*$',
+            f'{key}={value}',
+            content,
+            flags=re.MULTILINE
+        )
+    else:
+        content += f"\n{key}={value}\n"
+    
+    env_path.write_text(content)
+
+
+@app.get("/api/settings", response_model=SettingsResponse)
+async def get_settings():
+    """Get current application settings."""
+    api_key = _get_api_key_from_env()
+    selected_model = _get_selected_model()
+    
+    return SettingsResponse(
+        api_key_configured=api_key is not None,
+        api_key_masked=_mask_api_key(api_key) if api_key else None,
+        selected_model=selected_model,
+        available_models=AVAILABLE_MODELS,
+        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.z.ai/api/anthropic"),
+    )
+
+
+@app.put("/api/settings", response_model=SettingsResponse)
+async def update_settings(settings: SettingsUpdate):
+    """Update application settings."""
+    # Update API key if provided
+    if settings.api_key:
+        _save_setting_to_env("ZAI_API_KEY", settings.api_key)
+        os.environ["ZAI_API_KEY"] = settings.api_key
+    
+    # Update selected model if provided
+    if settings.selected_model:
+        _save_setting_to_env("SELECTED_MODEL", settings.selected_model)
+        os.environ["SELECTED_MODEL"] = settings.selected_model
+    
+    # Return updated settings
+    api_key = _get_api_key_from_env()
+    selected_model = _get_selected_model()
+    
+    return SettingsResponse(
+        api_key_configured=api_key is not None,
+        api_key_masked=_mask_api_key(api_key) if api_key else None,
+        selected_model=selected_model,
+        available_models=AVAILABLE_MODELS,
+        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.z.ai/api/anthropic"),
     )
 
 

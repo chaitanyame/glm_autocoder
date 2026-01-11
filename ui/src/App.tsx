@@ -16,7 +16,8 @@ import { DebugLogViewer } from './components/DebugLogViewer'
 import { AgentThought } from './components/AgentThought'
 import { AssistantFAB } from './components/AssistantFAB'
 import { AssistantPanel } from './components/AssistantPanel'
-import { Plus, Loader2 } from 'lucide-react'
+import { SettingsModal } from './components/SettingsModal'
+import { Plus, Loader2, Settings } from 'lucide-react'
 import type { Feature } from './lib/types'
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
   const [debugOpen, setDebugOpen] = useState(false)
   const [debugPanelHeight, setDebugPanelHeight] = useState(288) // Default height
   const [assistantOpen, setAssistantOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const { data: projects, isLoading: projectsLoading } = useProjects()
   const { data: features } = useFeatures(selectedProject)
@@ -93,9 +95,17 @@ function App() {
         setAssistantOpen(prev => !prev)
       }
 
+      // S : Toggle settings modal
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault()
+        setSettingsOpen(prev => !prev)
+      }
+
       // Escape : Close modals
       if (e.key === 'Escape') {
-        if (assistantOpen) {
+        if (settingsOpen) {
+          setSettingsOpen(false)
+        } else if (assistantOpen) {
           setAssistantOpen(false)
         } else if (showAddFeature) {
           setShowAddFeature(false)
@@ -109,7 +119,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedProject, showAddFeature, selectedFeature, debugOpen, assistantOpen])
+  }, [selectedProject, showAddFeature, selectedFeature, debugOpen, assistantOpen, settingsOpen])
 
   // Combine WebSocket progress with feature data
   const progress = wsState.progress.total > 0 ? wsState.progress : {
@@ -139,6 +149,15 @@ function App() {
 
             {/* Controls */}
             <div className="flex items-center gap-4">
+              {/* Settings Button */}
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="p-2 rounded-md hover:bg-white/10 transition-colors"
+                title="Settings"
+              >
+                <Settings size={20} />
+              </button>
+
               <ProjectSelector
                 projects={projects ?? []}
                 selectedProject={selectedProject}
@@ -270,6 +289,12 @@ function App() {
           />
         </>
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   )
 }

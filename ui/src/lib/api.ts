@@ -13,6 +13,8 @@ import type {
   AgentActionResponse,
   SetupStatus,
   ApiKeyResponse,
+  Settings,
+  SettingsUpdate,
   DirectoryListResponse,
   PathValidationResponse,
   AssistantConversation,
@@ -184,6 +186,21 @@ export async function saveApiKey(apiKey: string): Promise<ApiKeyResponse> {
   return fetchJSON('/setup/api-key', {
     method: 'POST',
     body: JSON.stringify({ api_key: apiKey }),
+  })
+}
+
+// ============================================================================
+// Settings API
+// ============================================================================
+
+export async function getSettings(): Promise<Settings> {
+  return fetchJSON('/settings')
+}
+
+export async function updateSettings(settings: SettingsUpdate): Promise<Settings> {
+  return fetchJSON('/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
   })
 }
 
