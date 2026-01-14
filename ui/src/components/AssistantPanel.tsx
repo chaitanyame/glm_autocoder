@@ -30,7 +30,7 @@ export function AssistantPanel({ projectName, isOpen, onClose }: AssistantPanelP
       <div
         className={`
           fixed right-0 top-0 bottom-0 z-50
-          w-[400px] max-w-[90vw]
+          w-full md:w-[400px] md:max-w-[90vw]
           bg-white
           border-l-4 border-[var(--color-neo-border)]
           shadow-[-8px_0_0px_rgba(0,0,0,1)]

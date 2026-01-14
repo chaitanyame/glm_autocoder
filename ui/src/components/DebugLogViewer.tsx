@@ -61,6 +61,15 @@ export function DebugLogViewer({
     setPanelHeight(clampedHeight)
   }, [])
 
+  // Handle touch move during resize
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length > 0) {
+      const newHeight = window.innerHeight - e.touches[0].clientY
+      const clampedHeight = Math.min(Math.max(newHeight, MIN_HEIGHT), MAX_HEIGHT)
+      setPanelHeight(clampedHeight)
+    }
+  }, [])
+
   // Handle mouse up to stop resizing
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
@@ -68,24 +77,41 @@ export function DebugLogViewer({
     localStorage.setItem(STORAGE_KEY, panelHeight.toString())
   }, [panelHeight])
 
-  // Set up global mouse event listeners during resize
+  // Handle touch end to stop resizing
+  const handleTouchEnd = useCallback(() => {
+    setIsResizing(false)
+    localStorage.setItem(STORAGE_KEY, panelHeight.toString())
+  }, [panelHeight])
+
+  // Set up global mouse and touch event listeners during resize
   useEffect(() => {
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleTouchEnd)
       document.body.style.cursor = 'ns-resize'
       document.body.style.userSelect = 'none'
     }
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
-  }, [isResizing, handleMouseMove, handleMouseUp])
+  }, [isResizing, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd])
 
-  // Start resizing
+  // Start resizing (mouse)
   const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+  }
+
+  // Start resizing (touch)
+  const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsResizing(true)
@@ -153,10 +179,11 @@ export function DebugLogViewer({
       {/* Resize handle - only visible when open */}
       {isOpen && (
         <div
-          className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize group flex items-center justify-center -translate-y-1/2 z-50"
+          className="absolute top-0 left-0 right-0 h-4 cursor-ns-resize group flex items-center justify-center -translate-y-1/2 z-50 touch-none"
           onMouseDown={handleResizeStart}
+          onTouchStart={handleTouchStart}
         >
-          <div className="w-16 h-1.5 bg-[#333] rounded-full group-hover:bg-[#555] transition-colors flex items-center justify-center">
+          <div className="w-16 h-1.5 bg-[#333] rounded-full group-hover:bg-[#555] group-active:bg-[#666] transition-colors flex items-center justify-center">
             <GripHorizontal size={12} className="text-gray-500 group-hover:text-gray-400" />
           </div>
         </div>

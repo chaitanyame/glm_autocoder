@@ -19,7 +19,7 @@ import { AgentThought } from './components/AgentThought'
 import { AssistantFAB } from './components/AssistantFAB'
 import { AssistantPanel } from './components/AssistantPanel'
 import { SettingsModal } from './components/SettingsModal'
-import { Plus, Loader2, Settings, Moon, Sun } from 'lucide-react'
+import { Plus, Loader2, Settings, Moon, Sun, Menu, X } from 'lucide-react'
 import type { Feature } from './lib/types'
 
 function App() {
@@ -40,6 +40,7 @@ function App() {
   const [debugPanelHeight, setDebugPanelHeight] = useState(288) // Default height
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const { data: projects, isLoading: projectsLoading } = useProjects()
@@ -156,12 +157,12 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo and Title */}
-            <h1 className="font-display text-2xl font-bold tracking-tight uppercase">
+            <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight uppercase">
               AutoCoder
             </h1>
 
-            {/* Controls */}
-            <div className="flex items-center gap-4">
+            {/* Desktop Controls - hidden on mobile */}
+            <div className="hidden md:flex items-center gap-4">
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleTheme}
@@ -210,7 +211,84 @@ function App() {
                 </>
               )}
             </div>
+
+            {/* Mobile hamburger button - visible only on mobile */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-md hover:bg-white/10 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
+
+          {/* Mobile Menu Dropdown */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden mt-4 pt-4 border-t border-white/20 space-y-3 animate-slide-in">
+              {/* Project Selector - full width on mobile */}
+              <div className="w-full">
+                <ProjectSelector
+                  projects={projects ?? []}
+                  selectedProject={selectedProject}
+                  onSelectProject={(name) => {
+                    handleSelectProject(name)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  isLoading={projectsLoading}
+                />
+              </div>
+
+              {/* Action buttons row */}
+              <div className="flex items-center gap-2">
+                {/* Dark Mode Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="p-3 rounded-md hover:bg-white/10 transition-colors"
+                  title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                >
+                  {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
+                
+                {/* Settings Button */}
+                <button
+                  onClick={() => {
+                    setSettingsOpen(true)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="p-3 rounded-md hover:bg-white/10 transition-colors"
+                  title="Settings"
+                >
+                  <Settings size={20} />
+                </button>
+
+                {selectedProject && (
+                  <button
+                    onClick={() => {
+                      setShowAddFeature(true)
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="neo-btn neo-btn-primary text-sm flex-1"
+                    title="Add Feature"
+                  >
+                    <Plus size={18} />
+                    Add Feature
+                  </button>
+                )}
+              </div>
+
+              {/* Agent Control - full width */}
+              {selectedProject && (
+                <div className="w-full">
+                  <AgentControl
+                    projectName={selectedProject}
+                    status={wsState.agentStatus}
+                    yoloMode={agentStatusData?.yolo_mode ?? false}
+                    isConnected={wsState.isConnected}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
 

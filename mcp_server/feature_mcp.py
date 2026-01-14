@@ -401,6 +401,9 @@ def feature_create_bulk(
     This is typically used by the initializer agent to set up the initial
     feature list from the app specification.
 
+    DUPLICATE PREVENTION: Features with names that already exist in the database
+    are skipped to prevent duplicates from agent restarts.
+
     Args:
         features: List of features to create, each with:
             - category (str): Feature category
@@ -409,15 +412,23 @@ def feature_create_bulk(
             - steps (list[str]): Implementation/test steps
 
     Returns:
-        JSON with: created (int) - number of features created
+        JSON with: created (int) - number of features created, skipped (int) - duplicates skipped
     """
     session = get_session()
     try:
+        # Get existing feature names to prevent duplicates
+        existing_names = set(
+            row[0] for row in session.query(Feature.name).all()
+        )
+        
         # Get the starting priority
         max_priority_result = session.query(Feature.priority).order_by(Feature.priority.desc()).first()
         start_priority = (max_priority_result[0] + 1) if max_priority_result else 1
 
         created_count = 0
+        skipped_count = 0
+        priority_offset = 0
+        
         for i, feature_data in enumerate(features):
             # Validate required fields
             if not all(key in feature_data for key in ["category", "name", "description", "steps"]):
@@ -425,23 +436,31 @@ def feature_create_bulk(
                     "error": f"Feature at index {i} missing required fields (category, name, description, steps)"
                 })
 
+            # Skip duplicates
+            feature_name = feature_data["name"]
+            if feature_name in existing_names:
+                skipped_count += 1
+                continue
+
             db_feature = Feature(
-                priority=start_priority + i,
+                priority=start_priority + priority_offset,
                 category=feature_data["category"],
-                name=feature_data["name"],
+                name=feature_name,
                 description=feature_data["description"],
                 steps=feature_data["steps"],
                 passes=False,
             )
             session.add(db_feature)
+            existing_names.add(feature_name)  # Track newly added names too
             created_count += 1
+            priority_offset += 1
 
         session.commit()
 
         # Notify UI of feature update
         _notify_feature_update()
 
-        return json.dumps({"created": created_count}, indent=2)
+        return json.dumps({"created": created_count, "skipped": skipped_count}, indent=2)
     except Exception as e:
         session.rollback()
         return json.dumps({"error": str(e)})

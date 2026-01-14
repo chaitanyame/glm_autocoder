@@ -53,7 +53,7 @@ export function ProjectSelector({
       {/* Dropdown Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="neo-btn bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] min-w-[200px] justify-between"
+        className="neo-btn bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] w-full md:min-w-[200px] md:w-auto justify-between"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -88,7 +88,7 @@ export function ProjectSelector({
           />
 
           {/* Menu */}
-          <div className="absolute top-full left-0 mt-2 w-full neo-dropdown z-50 min-w-[280px]">
+          <div className="absolute top-full left-0 mt-2 w-full neo-dropdown z-50 md:min-w-[280px] max-w-[calc(100vw-2rem)]">
             {projects.length > 0 ? (
               <div className="max-h-[300px] overflow-auto">
                 {projects.map(project => (
@@ -160,7 +160,7 @@ export function ProjectSelector({
       {deleteConfirm && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setDeleteConfirm(null)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 neo-card bg-white p-6 min-w-[300px]">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 neo-card bg-white p-6 w-[calc(100vw-2rem)] max-w-[400px]">
             <h3 className="text-lg font-bold mb-4">Delete Project</h3>
             <p className="text-[var(--color-neo-text-secondary)] mb-6">
               Are you sure you want to delete <strong>{deleteConfirm}</strong>?
