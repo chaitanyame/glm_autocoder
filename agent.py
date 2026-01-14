@@ -7,11 +7,15 @@ Core agent interaction functions for running autonomous coding sessions.
 
 import asyncio
 import io
+import re
 import sys
 from pathlib import Path
 from typing import Optional
 
 from claude_agent_sdk import ClaudeSDKClient
+
+# Exit code for rate limiting - signals process_manager to schedule auto-resume
+EXIT_CODE_RATE_LIMITED = 42
 
 # Fix Windows console encoding for Unicode characters (emoji, etc.)
 # Without this, print() crashes when Claude outputs emoji like ✅
@@ -102,8 +106,35 @@ async def run_agent_session(
         return "continue", response_text
 
     except Exception as e:
-        print(f"Error during agent session: {e}")
-        return "error", str(e)
+        error_str = str(e)
+        print(f"Error during agent session: {error_str}")
+        
+        # Check for rate limit error (429) - extract reset time if available
+        if "429" in error_str or "rate limit" in error_str.lower():
+            reset_time = _extract_reset_time(error_str)
+            return "rate_limited", reset_time or ""
+        
+        return "error", error_str
+
+
+def _extract_reset_time(error_str: str) -> Optional[str]:
+    """
+    Extract reset time from rate limit error message.
+    
+    Looks for patterns like:
+    - "2026-01-15 05:39:26" 
+    - "reset at 2026-01-15T05:39:26"
+    
+    Returns:
+        Reset time string if found, None otherwise
+    """
+    # Try to find datetime pattern in the error message
+    # Format: YYYY-MM-DD HH:MM:SS or YYYY-MM-DDTHH:MM:SS
+    pattern = r'(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})'
+    match = re.search(pattern, error_str)
+    if match:
+        return match.group(1).replace('T', ' ')
+    return None
 
 
 async def run_autonomous_agent(
@@ -200,6 +231,22 @@ async def run_autonomous_agent(
             print(f"\nAgent will auto-continue in {AUTO_CONTINUE_DELAY_SECONDS}s...")
             print_progress_summary(project_dir)
             await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
+
+        elif status == "rate_limited":
+            # Rate limited - print marker for process manager and exit with special code
+            reset_time = response  # response contains the reset time
+            print("\n" + "=" * 70)
+            print("  RATE LIMITED")
+            print("=" * 70)
+            print(f"\nAPI rate limit exceeded.")
+            if reset_time:
+                print(f"Reset time: {reset_time}")
+            print("\nThe agent will automatically resume when the rate limit resets.")
+            print("=" * 70)
+            # Print marker for process_manager to detect
+            # Format: RATE_LIMITED:<reset_time_or_empty>
+            print(f"\nRATE_LIMITED:{reset_time}", flush=True)
+            sys.exit(EXIT_CODE_RATE_LIMITED)
 
         elif status == "error":
             print("\nSession encountered an error")

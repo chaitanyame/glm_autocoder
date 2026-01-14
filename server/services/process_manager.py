@@ -22,6 +22,12 @@ import psutil
 # Import the centralized lock file path helper
 from api.database import get_lock_file_path
 
+# Import rate limit state manager
+from server.services.rate_limit_state import get_rate_limit_state
+
+# Exit code 42 signals rate limiting
+EXIT_CODE_RATE_LIMITED = 42
+
 logger = logging.getLogger(__name__)
 
 # Patterns for sensitive data that should be redacted from output
@@ -74,7 +80,7 @@ class AgentProcessManager:
         self.project_dir = project_dir
         self.root_dir = root_dir
         self.process: subprocess.Popen | None = None
-        self._status: Literal["stopped", "running", "paused", "crashed"] = "stopped"
+        self._status: Literal["stopped", "running", "paused", "crashed", "rate_limited"] = "stopped"
         self.started_at: datetime | None = None
         self._output_task: asyncio.Task | None = None
         self.yolo_mode: bool = False  # YOLO mode for rapid prototyping
@@ -88,11 +94,11 @@ class AgentProcessManager:
         self.lock_file = get_lock_file_path(self.project_dir)
 
     @property
-    def status(self) -> Literal["stopped", "running", "paused", "crashed"]:
+    def status(self) -> Literal["stopped", "running", "paused", "crashed", "rate_limited"]:
         return self._status
 
     @status.setter
-    def status(self, value: Literal["stopped", "running", "paused", "crashed"]):
+    def status(self, value: Literal["stopped", "running", "paused", "crashed", "rate_limited"]):
         old_status = self._status
         self._status = value
         if old_status != value:
@@ -189,6 +195,8 @@ class AgentProcessManager:
         if not self.process or not self.process.stdout:
             return
 
+        rate_limit_reset_time: str | None = None
+
         try:
             loop = asyncio.get_running_loop()
             while True:
@@ -202,6 +210,12 @@ class AgentProcessManager:
                 decoded = line.decode("utf-8", errors="replace").rstrip()
                 sanitized = sanitize_output(decoded)
 
+                # Check for RATE_LIMITED marker from agent.py
+                if decoded.startswith("RATE_LIMITED:"):
+                    # Extract reset time from marker
+                    rate_limit_reset_time = decoded.split(":", 1)[1].strip() or None
+                    logger.info(f"Detected rate limit marker, reset time: {rate_limit_reset_time}")
+
                 await self._broadcast_output(sanitized)
 
         except asyncio.CancelledError:
@@ -212,7 +226,17 @@ class AgentProcessManager:
             # Check if process ended
             if self.process and self.process.poll() is not None:
                 exit_code = self.process.returncode
-                if exit_code != 0 and self.status == "running":
+                
+                # Handle rate limit exit code (42)
+                if exit_code == EXIT_CODE_RATE_LIMITED:
+                    self.status = "rate_limited"
+                    state = get_rate_limit_state()
+                    if rate_limit_reset_time:
+                        state.set_rate_limited(rate_limit_reset_time)
+                    # Schedule auto-resume in background
+                    asyncio.create_task(state.schedule_auto_resume())
+                    logger.info(f"Agent rate limited, auto-resume scheduled")
+                elif exit_code != 0 and self.status == "running":
                     self.status = "crashed"
                 elif self.status == "running":
                     self.status = "stopped"

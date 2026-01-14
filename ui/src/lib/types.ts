@@ -84,7 +84,7 @@ export interface FeatureCreate {
 }
 
 // Agent types
-export type AgentStatus = 'stopped' | 'running' | 'paused' | 'crashed'
+export type AgentStatus = 'stopped' | 'running' | 'paused' | 'crashed' | 'rate_limited'
 
 export interface AgentStatusResponse {
   status: AgentStatus
@@ -97,6 +97,12 @@ export interface AgentActionResponse {
   success: boolean
   status: AgentStatus
   message: string
+}
+
+export interface RateLimitStatus {
+  is_rate_limited: boolean
+  reset_time: string | null
+  seconds_until_reset: number
 }
 
 // Setup types

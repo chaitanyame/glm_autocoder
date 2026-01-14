@@ -153,6 +153,28 @@ export async function resumeAgent(projectName: string): Promise<AgentActionRespo
 }
 
 // ============================================================================
+// Rate Limit API
+// ============================================================================
+
+import type { RateLimitStatus } from './types'
+
+export async function getRateLimitStatus(projectName: string): Promise<RateLimitStatus> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/agent/rate-limit`)
+}
+
+export async function cancelAutoResume(projectName: string): Promise<AgentActionResponse> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/agent/rate-limit/cancel-resume`, {
+    method: 'POST',
+  })
+}
+
+export async function clearRateLimit(projectName: string): Promise<AgentActionResponse> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/agent/rate-limit/clear`, {
+    method: 'POST',
+  })
+}
+
+// ============================================================================
 // Spec Creation API
 // ============================================================================
 

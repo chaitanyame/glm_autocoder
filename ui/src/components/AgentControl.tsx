@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { Play, Pause, Square, Loader2, Zap } from 'lucide-react'
+import { Play, Pause, Square, Loader2, Zap, Clock, XCircle } from 'lucide-react'
 import {
   useStartAgent,
   useStopAgent,
   usePauseAgent,
   useResumeAgent,
   useSetupStatus,
+  useRateLimitStatus,
+  useCancelAutoResume,
+  useClearRateLimit,
 } from '../hooks/useProjects'
 import type { AgentStatus } from '../lib/types'
 
@@ -20,6 +23,7 @@ export function AgentControl({ projectName, status, yoloMode = false, isConnecte
   const [yoloEnabled, setYoloEnabled] = useState(false)
 
   const { data: setupStatus } = useSetupStatus()
+  const { data: rateLimitStatus } = useRateLimitStatus(projectName)
   const isApiKeyConfigured = setupStatus?.api_key_configured ?? false
 
   const canStartOrResume = isConnected && isApiKeyConfigured
@@ -33,12 +37,16 @@ export function AgentControl({ projectName, status, yoloMode = false, isConnecte
   const stopAgent = useStopAgent(projectName)
   const pauseAgent = usePauseAgent(projectName)
   const resumeAgent = useResumeAgent(projectName)
+  const cancelAutoResume = useCancelAutoResume(projectName)
+  const clearRateLimit = useClearRateLimit(projectName)
 
   const isLoading =
     startAgent.isPending ||
     stopAgent.isPending ||
     pauseAgent.isPending ||
-    resumeAgent.isPending
+    resumeAgent.isPending ||
+    cancelAutoResume.isPending ||
+    clearRateLimit.isPending
 
   const handleStart = () => {
     if (!canStartOrResume) return
@@ -49,6 +57,10 @@ export function AgentControl({ projectName, status, yoloMode = false, isConnecte
   const handleResume = () => {
     if (!canStartOrResume) return
     resumeAgent.mutate()
+  }
+  const handleCancelAutoResume = () => cancelAutoResume.mutate()
+  const handleClearRateLimit = () => {
+    clearRateLimit.mutate()
   }
 
   return (
@@ -140,10 +152,56 @@ export function AgentControl({ projectName, status, yoloMode = false, isConnecte
               <Square size={18} />
             </button>
           </>
+        ) : status === 'rate_limited' ? (
+          <>
+            {/* Rate limit countdown and controls */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-neo-danger)] bg-opacity-20 border-3 border-[var(--color-neo-danger)]">
+              <Clock size={16} className="text-[var(--color-neo-danger)]" />
+              <span className="font-display font-bold text-xs uppercase text-[var(--color-neo-danger)]">
+                {rateLimitStatus?.seconds_until_reset 
+                  ? formatCountdown(rateLimitStatus.seconds_until_reset)
+                  : 'Rate Limited'}
+              </span>
+            </div>
+            <button
+              onClick={handleCancelAutoResume}
+              disabled={isLoading}
+              className="neo-btn neo-btn-warning text-sm py-2 px-3"
+              title="Cancel auto-resume (manual control)"
+            >
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <XCircle size={18} />
+              )}
+            </button>
+            <button
+              onClick={handleClearRateLimit}
+              disabled={isLoading || !canStartOrResume}
+              className="neo-btn neo-btn-success text-sm py-2 px-3"
+              title="Clear rate limit and restart now"
+            >
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Play size={18} />
+              )}
+            </button>
+          </>
         ) : null}
       </div>
     </div>
   )
+}
+
+function formatCountdown(seconds: number): string {
+  if (seconds <= 0) return 'Ready'
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (mins > 0) {
+    return `${mins}m ${secs}s`
+  }
+  return `${secs}s`
 }
 
 function StatusIndicator({ status }: { status: AgentStatus }) {
@@ -166,6 +224,11 @@ function StatusIndicator({ status }: { status: AgentStatus }) {
     crashed: {
       color: 'var(--color-neo-danger)',
       label: 'Crashed',
+      pulse: true,
+    },
+    rate_limited: {
+      color: 'var(--color-neo-danger)',
+      label: 'Rate Limited',
       pulse: true,
     },
   }

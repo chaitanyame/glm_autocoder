@@ -110,10 +110,17 @@ class AgentStartRequest(BaseModel):
 
 class AgentStatus(BaseModel):
     """Current agent status."""
-    status: Literal["stopped", "running", "paused", "crashed"]
+    status: Literal["stopped", "running", "paused", "crashed", "rate_limited"]
     pid: int | None = None
     started_at: datetime | None = None
     yolo_mode: bool = False
+
+
+class RateLimitStatus(BaseModel):
+    """Rate limit status for the API."""
+    is_rate_limited: bool = False
+    reset_time: str | None = None
+    seconds_until_reset: int = 0
 
 
 class AgentActionResponse(BaseModel):

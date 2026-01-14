@@ -12,8 +12,9 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
-from ..schemas import AgentActionResponse, AgentStartRequest, AgentStatus
+from ..schemas import AgentActionResponse, AgentStartRequest, AgentStatus, RateLimitStatus
 from ..services.process_manager import get_manager
+from ..services.rate_limit_state import get_rate_limit_state
 
 
 def _get_project_path(project_name: str) -> Path:
@@ -173,4 +174,73 @@ async def resume_agent(project_name: str):
         success=success,
         status=manager.status,
         message=message,
+    )
+
+
+# Rate limit endpoints (API-wide, not project-specific)
+# But exposed under project router for convenience
+@router.get("/rate-limit", response_model=RateLimitStatus)
+async def get_rate_limit_status(project_name: str):
+    """
+    Get the current rate limit status.
+    
+    Rate limiting is API-wide, so this returns the same status for all projects.
+    """
+    # Validate project name to prevent abuse
+    validate_project_name(project_name)
+    
+    state = get_rate_limit_state()
+    return RateLimitStatus(
+        is_rate_limited=state.is_rate_limited,
+        reset_time=state.reset_time_str,
+        seconds_until_reset=state.get_seconds_until_reset(),
+    )
+
+
+@router.post("/rate-limit/cancel-resume", response_model=AgentActionResponse)
+async def cancel_auto_resume(project_name: str):
+    """
+    Cancel the scheduled auto-resume after rate limit.
+    
+    Use this if you want to manually control when to resume rather than 
+    waiting for the automatic timer.
+    """
+    # Validate project name to prevent abuse
+    validate_project_name(project_name)
+    
+    state = get_rate_limit_state()
+    cancelled = state.cancel_auto_resume()
+    
+    if cancelled:
+        return AgentActionResponse(
+            success=True,
+            status="rate_limited",
+            message="Auto-resume cancelled. Use 'Resume' to manually restart.",
+        )
+    else:
+        return AgentActionResponse(
+            success=False,
+            status="stopped",
+            message="No auto-resume was scheduled.",
+        )
+
+
+@router.post("/rate-limit/clear", response_model=AgentActionResponse)
+async def clear_rate_limit(project_name: str):
+    """
+    Manually clear the rate limit status.
+    
+    Use this when you know the rate limit has been lifted but the timer 
+    hasn't expired yet.
+    """
+    # Validate project name to prevent abuse
+    validate_project_name(project_name)
+    
+    state = get_rate_limit_state()
+    state.clear_rate_limit()
+    
+    return AgentActionResponse(
+        success=True,
+        status="stopped",
+        message="Rate limit status cleared. You can now restart the agent.",
     )

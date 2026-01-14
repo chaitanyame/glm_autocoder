@@ -152,6 +152,47 @@ export function useResumeAgent(projectName: string) {
 }
 
 // ============================================================================
+// Rate Limit
+// ============================================================================
+
+export function useRateLimitStatus(projectName: string) {
+  return useQuery({
+    queryKey: ['rate-limit', projectName],
+    queryFn: () => api.getRateLimitStatus(projectName),
+    refetchInterval: (query) => {
+      // Poll every second if rate limited, otherwise every 30 seconds
+      const data = query.state.data
+      return data?.is_rate_limited ? 1000 : 30000
+    },
+    enabled: !!projectName,
+  })
+}
+
+export function useCancelAutoResume(projectName: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => api.cancelAutoResume(projectName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rate-limit', projectName] })
+      queryClient.invalidateQueries({ queryKey: ['agent-status', projectName] })
+    },
+  })
+}
+
+export function useClearRateLimit(projectName: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => api.clearRateLimit(projectName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rate-limit', projectName] })
+      queryClient.invalidateQueries({ queryKey: ['agent-status', projectName] })
+    },
+  })
+}
+
+// ============================================================================
 // Setup
 // ============================================================================
 
