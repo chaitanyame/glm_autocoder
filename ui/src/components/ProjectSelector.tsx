@@ -53,7 +53,7 @@ export function ProjectSelector({
       {/* Dropdown Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="neo-btn bg-white text-[var(--color-neo-text)] min-w-[200px] justify-between"
+        className="neo-btn bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] min-w-[200px] justify-between"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -65,13 +65,13 @@ export function ProjectSelector({
               {selectedProject}
             </span>
             {selectedProjectData && selectedProjectData.stats.total > 0 && (
-              <span className="neo-badge bg-[var(--color-neo-done)] ml-2">
+              <span className="neo-badge bg-[var(--color-status-done)] text-[#1a1a1a] ml-2">
                 {selectedProjectData.stats.percentage}%
               </span>
             )}
           </>
         ) : (
-          <span className="text-[var(--color-neo-text-secondary)]">
+          <span className="text-[var(--color-text-secondary)]">
             Select Project
           </span>
         )}

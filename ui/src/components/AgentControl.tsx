@@ -236,7 +236,7 @@ function StatusIndicator({ status }: { status: AgentStatus }) {
   const config = statusConfig[status]
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-white border-3 border-[var(--color-neo-border)]">
+    <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-bg-secondary)] border-3 border-[var(--color-border-default)]">
       <span
         className={`w-3 h-3 rounded-full ${config.pulse ? 'animate-pulse' : ''}`}
         style={{ backgroundColor: config.color }}
