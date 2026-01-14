@@ -80,30 +80,31 @@ COPY api/ ./api/
 COPY mcp_server/ ./mcp_server/
 COPY server/ ./server/
 COPY .claude/ ./.claude/
+COPY docker-entrypoint.sh ./
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/ui/dist ./ui/dist
 
-# Create non-root user for security (Chrome requires non-root or --no-sandbox)
-RUN useradd -m -u 1000 -s /bin/bash autocoder && \
-    mkdir -p /projects /home/autocoder/.autocoder && \
-    chown -R autocoder:autocoder /app /projects /home/autocoder
+# Create directories and set permissions
+# Note: We run as root for cross-platform compatibility (Windows/Linux/macOS)
+# Docker provides container isolation, and Chrome uses --no-sandbox flag
+RUN mkdir -p /projects /root/.autocoder && \
+    chmod +x /app/docker-entrypoint.sh
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV DISPLAY=:99
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/autocoder/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/root/ms-playwright
 ENV DOCKER_ENV=1
 # Increase websockets library max header line length for large browser cookies (e.g., Supabase auth tokens)
 ENV WEBSOCKETS_MAX_LINE_LENGTH=65536
-ENV HOME=/home/autocoder
+ENV HOME=/root
 
-# Switch to non-root user
-USER autocoder
-
-# Install Playwright browsers as non-root user (both chrome and chromium)
-RUN npx playwright install chrome chromium
+# Install Playwright MCP and browsers (pinned version to avoid version mismatch)
+# Using 0.0.55 which is compatible with Playwright 1.57.0
+RUN npm install -g @playwright/mcp@0.0.55 && \
+    npx playwright install chromium
 
 # Expose the web UI port
 EXPOSE 8888
@@ -112,6 +113,5 @@ EXPOSE 8888
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8888/api/health || exit 1
 
-# Default command: run the FastAPI server
-# Use h11 with larger header size limit to handle browser cookies (e.g., Supabase auth tokens)
-CMD ["python", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8888", "--http", "h11", "--h11-max-incomplete-event-size", "65536"]
+# Default command: run via entrypoint script which checks permissions
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

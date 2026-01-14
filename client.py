@@ -207,7 +207,7 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
         # Use headless mode in Docker/server environments (no display)
         # Use --isolated to prevent browser profile conflicts between projects
         playwright_args = [
-            "@playwright/mcp@latest",
+            "@playwright/mcp@0.0.55",  # Pinned version to match Docker-installed browsers
         ]
         
         # Use chromium in Docker (installed via npx), chrome in standalone (system-installed)
@@ -237,8 +237,8 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
         if os.environ.get("DOCKER_ENV") == "1":
             playwright_config["env"] = {
                 **os.environ,  # Inherit all parent environment variables
-                "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/home/autocoder/ms-playwright"),
-                "HOME": os.environ.get("HOME", "/home/autocoder"),
+                "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/root/ms-playwright"),
+                "HOME": os.environ.get("HOME", "/root"),
             }
         
         mcp_servers["playwright"] = playwright_config

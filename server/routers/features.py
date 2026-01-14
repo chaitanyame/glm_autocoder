@@ -45,10 +45,20 @@ def _get_db_classes():
         root = Path(__file__).parent.parent.parent
         if str(root) not in sys.path:
             sys.path.insert(0, str(root))
-        from api.database import Feature, create_database
+        from api.database import Feature, create_database, get_database_path
         _create_database = create_database
         _Feature = Feature
     return _create_database, _Feature
+
+
+def _get_database_path_helper(project_dir: Path) -> Path:
+    """Get the database path using the centralized helper."""
+    import sys
+    root = Path(__file__).parent.parent.parent
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from api.database import get_database_path
+    return get_database_path(project_dir)
 
 
 router = APIRouter(prefix="/api/projects/{project_name}/features", tags=["features"])
@@ -112,7 +122,7 @@ async def list_features(project_name: str):
     if not project_dir.exists():
         raise HTTPException(status_code=404, detail="Project directory not found")
 
-    db_file = project_dir / "features.db"
+    db_file = _get_database_path_helper(project_dir)
     if not db_file.exists():
         return FeatureListResponse(pending=[], in_progress=[], done=[])
 

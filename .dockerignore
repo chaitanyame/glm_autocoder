@@ -64,8 +64,9 @@ docs/
 *.md
 !README.md
 
-# Shell scripts (not needed in container)
+# Shell scripts (not needed in container, except entrypoint)
 *.sh
+!docker-entrypoint.sh
 *.bat
 
 # Development files

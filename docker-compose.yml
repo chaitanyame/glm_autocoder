@@ -1,23 +1,52 @@
-version: '3.8'
+# =============================================================================
+# AutoCoder Docker Compose - Unified Configuration
+# =============================================================================
+# Works on Windows, macOS, and Linux with a single command:
+#   docker compose up -d --build
+#
+# Environment variables (set in .env file):
+#   HOST_PROJECTS_DIR - Path to projects folder on your host machine
+#   ZAI_API_KEY       - Your Z.AI API key (required)
+#   CORS_ORIGINS      - Allowed origins for remote access (optional)
+# =============================================================================
 
 services:
   autocoder:
     build:
       context: .
       dockerfile: Dockerfile
+    image: zlm-code-harness:latest
     container_name: zlm-code-harness
+    
     env_file:
       - .env
+    
     environment:
       - DOCKER_ENV=1
+      - DISPLAY=:99
+      - PLAYWRIGHT_BROWSERS_PATH=/root/ms-playwright
+      # CORS - set in .env for remote access
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+    
     volumes:
-      # Mount projects directory using HOST_PROJECTS_DIR from .env
-      - ${HOST_PROJECTS_DIR:-/opt/autocoder_projects}:/projects
-      # Named volume for autocoder data (registry.db, etc.) - non-root user home
-      - autocoder-data:/home/autocoder/.autocoder
+      # Mount projects directory
+      - ${HOST_PROJECTS_DIR:-./projects}:/projects
+      # Persist registry database across restarts
+      - autocoder-data:/root/.autocoder
+    
     ports:
       - "8888:8888"
+    
     restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   autocoder-data:
+    driver: local

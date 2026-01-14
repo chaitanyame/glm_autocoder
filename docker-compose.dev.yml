@@ -37,7 +37,7 @@ services:
       # Mount projects directory
       - ${PROJECTS_DIR:-~/Projects}:/projects
       # Persist registry
-      - zlm-data-dev:/home/autocoder/.zlm-harness
+      - zlm-data-dev:/root/.autocoder
     
     # Override default command to run in dev mode
     command: ["python", "start_ui.py", "--dev"]

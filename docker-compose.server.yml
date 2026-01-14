@@ -40,7 +40,7 @@ services:
       
       # Headless browser settings
       - DISPLAY=:99
-      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+      - PLAYWRIGHT_BROWSERS_PATH=/root/ms-playwright
       
       # Optional: N8N webhook for progress notifications
       - PROGRESS_N8N_WEBHOOK_URL=${PROGRESS_N8N_WEBHOOK_URL:-}
@@ -49,7 +49,7 @@ services:
       # Mount projects directory
       - ${PROJECTS_DIR:-./projects}:/projects
       # Persist registry database across restarts
-      - zlm-data:/home/autocoder/.zlm-harness
+      - zlm-data:/root/.autocoder
     
     # Start Xvfb before the main process for headless Playwright
     command: >
