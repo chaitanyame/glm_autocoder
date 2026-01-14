@@ -49,7 +49,7 @@ services:
       # Mount projects directory
       - ${PROJECTS_DIR:-./projects}:/projects
       # Persist registry database across restarts
-      - zlm-data:/root/.zlm-harness
+      - zlm-data:/home/autocoder/.zlm-harness
     
     # Start Xvfb before the main process for headless Playwright
     command: >

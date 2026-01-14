@@ -74,20 +74,25 @@ COPY .claude/ ./.claude/
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/ui/dist ./ui/dist
 
-# Create directories for runtime
-# /projects is where projects are mounted, ~/.autocoder is where registry.py stores its database
-RUN mkdir -p /projects /root/.autocoder
+# Create non-root user for security (Chrome requires non-root or --no-sandbox)
+RUN useradd -m -u 1000 -s /bin/bash autocoder && \
+    mkdir -p /projects /home/autocoder/.autocoder && \
+    chown -R autocoder:autocoder /app /projects /home/autocoder
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV DISPLAY=:99
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/autocoder/ms-playwright
 ENV DOCKER_ENV=1
 # Increase websockets library max header line length for large browser cookies (e.g., Supabase auth tokens)
 ENV WEBSOCKETS_MAX_LINE_LENGTH=65536
+ENV HOME=/home/autocoder
 
-# Install Playwright browsers
+# Switch to non-root user
+USER autocoder
+
+# Install Playwright browsers as non-root user
 RUN npx playwright install chromium
 
 # Expose the web UI port

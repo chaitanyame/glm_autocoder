@@ -35,13 +35,18 @@ RUN npm ci
 
 WORKDIR /app
 
-# Create runtime directories
-# /projects is where projects are mounted, ~/.autocoder is where registry.py stores its database
-RUN mkdir -p /projects /root/.autocoder
+# Create non-root user for security (Chrome requires non-root or --no-sandbox)
+RUN useradd -m -u 1000 -s /bin/bash autocoder && \
+    mkdir -p /projects /home/autocoder/.autocoder /home/autocoder/.zlm-harness && \
+    chown -R autocoder:autocoder /app /projects /home/autocoder
 
 # Environment
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV HOME=/home/autocoder
+
+# Switch to non-root user
+USER autocoder
 
 EXPOSE 8888 5173
 

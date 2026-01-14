@@ -13,8 +13,8 @@ services:
     volumes:
       # Mount projects directory using HOST_PROJECTS_DIR from .env
       - ${HOST_PROJECTS_DIR:-/opt/autocoder_projects}:/projects
-      # Named volume for autocoder data (registry.db, etc.)
-      - autocoder-data:/root/.autocoder
+      # Named volume for autocoder data (registry.db, etc.) - non-root user home
+      - autocoder-data:/home/autocoder/.autocoder
     ports:
       - "8888:8888"
     restart: unless-stopped

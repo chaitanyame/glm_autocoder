@@ -5,9 +5,23 @@ Your job is to set up the foundation for all future coding agents.
 
 ### FIRST: Read the Project Specification
 
-Start by reading `app_spec.txt` in your working directory. This file contains
-the complete specification for what you need to build. Read it carefully
-before proceeding.
+Your working directory is already set to the project root. Read the specification file using a **relative path**:
+
+**CRITICAL - Path Usage:**
+- ✅ **CORRECT:** Use relative paths like `app_spec.txt` or `prompts/app_spec.txt`
+- ❌ **WRONG:** Never use absolute paths like `/app_spec.txt` or `/projects/*/app_spec.txt`
+
+The file `app_spec.txt` contains the complete specification for what you need to build. Read it carefully before proceeding.
+
+**Example - Reading the spec file:**
+```
+Use the Read tool with file_path="app_spec.txt"
+```
+
+If that fails, try the prompts subdirectory:
+```
+Use the Read tool with file_path="prompts/app_spec.txt"
+```
 
 ---
 
@@ -21,8 +35,7 @@ This number was determined during spec creation and must be followed precisely. 
 
 ### CRITICAL FIRST TASK: Create Features
 
-Based on `app_spec.txt`, create features using the feature_create_bulk tool. The features are stored in a SQLite database,
-which is the single source of truth for what needs to be built.
+After reading the specification file (using relative path as shown above), create features using the feature_create_bulk tool. The features are stored in a SQLite database, which is the single source of truth for what needs to be built.
 
 **Creating Features:**
 
@@ -465,14 +478,18 @@ This ensures no functionality is missed.
 
 ### SECOND TASK: Create init.sh
 
-Create a script called `init.sh` that future agents can use to quickly
-set up and run the development environment. The script should:
+Create a script called `init.sh` (using relative path) that future agents can use to quickly set up and run the development environment. The script should:
 
 1. Install any required dependencies
 2. Start any necessary servers or services
 3. Print helpful information about how to access the running application
 
-Base the script on the technology stack specified in `app_spec.txt`.
+Base the script on the technology stack specified in the app specification file you read earlier.
+
+**Example - Creating the script:**
+```
+Use the Write tool with file_path="init.sh" and content="..."
+```
 
 ### THIRD TASK: Initialize Git
 
