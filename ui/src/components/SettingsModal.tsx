@@ -96,24 +96,24 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         ) : (
           <div className="space-y-6">
             {/* API Connection Status */}
-            <div className={`p-4 border-3 rounded ${settings?.api_key_configured ? 'border-[var(--color-status-done)] bg-[var(--color-status-done)]/10' : 'border-[var(--color-status-error)] bg-[var(--color-status-error)]/10'}`}>
+            <div className={`p-4 border-3 rounded overflow-hidden ${settings?.api_key_configured ? 'border-[var(--color-status-done)] bg-[var(--color-status-done)]/10' : 'border-[var(--color-status-error)] bg-[var(--color-status-error)]/10'}`}>
               <div className="flex items-center gap-3">
                 {settings?.api_key_configured ? (
                   <>
-                    <Wifi size={24} className="text-[var(--color-status-done)]" />
-                    <div>
+                    <Wifi size={24} className="text-[var(--color-status-done)] flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <div className="font-display font-bold text-[var(--color-status-done)]">
                         API Connected
                       </div>
-                      <div className="text-sm text-[var(--color-text-secondary)]">
+                      <div className="text-sm text-[var(--color-text-secondary)] truncate">
                         Key: <code className="font-mono">{settings.api_key_masked}</code>
                       </div>
                     </div>
                   </>
                 ) : (
                   <>
-                    <WifiOff size={24} className="text-[var(--color-status-error)]" />
-                    <div>
+                    <WifiOff size={24} className="text-[var(--color-status-error)] flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <div className="font-display font-bold text-[var(--color-status-error)]">
                         API Not Connected
                       </div>
