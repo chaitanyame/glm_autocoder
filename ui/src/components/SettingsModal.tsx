@@ -86,7 +86,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[var(--color-neo-bg-alt)] rounded transition-colors"
+            className="p-2 hover:bg-[var(--color-bg-tertiary)] rounded transition-colors"
           >
             <X size={20} />
           </button>
@@ -99,32 +99,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         ) : (
           <div className="space-y-6">
             {/* API Connection Status */}
-            <div className={`p-4 border-3 rounded ${
-              settings?.api_key_configured 
-                ? 'border-[var(--color-neo-done)] bg-[var(--color-neo-done)]/10' 
-                : 'border-[var(--color-neo-danger)] bg-[var(--color-neo-danger)]/10'
-            }`}>
+            <div className={`p-4 border-3 rounded ${settings?.api_key_configured ? 'border-[var(--color-status-done)] bg-[var(--color-status-done)]/10' : 'border-[var(--color-status-error)] bg-[var(--color-status-error)]/10'}`}>
               <div className="flex items-center gap-3">
                 {settings?.api_key_configured ? (
                   <>
-                    <Wifi size={24} className="text-[var(--color-neo-done)]" />
+                    <Wifi size={24} className="text-[var(--color-status-done)]" />
                     <div>
-                      <div className="font-display font-bold text-[var(--color-neo-done)]">
+                      <div className="font-display font-bold text-[var(--color-status-done)]">
                         API Connected
                       </div>
-                      <div className="text-sm text-[var(--color-neo-text-secondary)]">
+                      <div className="text-sm text-[var(--color-text-secondary)]">
                         Key: <code className="font-mono">{settings.api_key_masked}</code>
                       </div>
                     </div>
                   </>
                 ) : (
                   <>
-                    <WifiOff size={24} className="text-[var(--color-neo-danger)]" />
+                    <WifiOff size={24} className="text-[var(--color-status-error)]" />
                     <div>
-                      <div className="font-display font-bold text-[var(--color-neo-danger)]">
+                      <div className="font-display font-bold text-[var(--color-status-error)]">
                         API Not Connected
                       </div>
-                      <div className="text-sm text-[var(--color-neo-text-secondary)]">
+                      <div className="text-sm text-[var(--color-text-secondary)]">
                         Enter your Z.AI API key below to connect
                       </div>
                     </div>
@@ -135,10 +131,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
             {/* API Key Section */}
             <div>
-              <label className="block font-display font-bold mb-2">
+              <label className="block font-display font-bold mb-2 text-[var(--color-text-primary)]">
                 {settings?.api_key_configured ? 'Update API Key' : 'Z.AI API Key'}
               </label>
-              <p className="text-sm text-[var(--color-neo-text-secondary)] mb-3">
+              <p className="text-sm text-[var(--color-text-secondary)] mb-3">
                 {settings?.api_key_configured 
                   ? 'Enter a new key to replace the existing one.' 
                   : 'Required for GLM model support.'}{' '}
@@ -146,7 +142,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   href="https://api.z.ai/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[var(--color-neo-accent)] hover:underline"
+                  className="text-[var(--color-accent-primary)] hover:underline font-medium"
                 >
                   Get your key →
                 </a>
@@ -158,12 +154,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={settings?.api_key_configured ? 'Enter new key to update...' : 'Enter your API key...'}
-                  className="w-full px-4 py-3 pr-12 border-3 border-[var(--color-neo-border)] bg-white font-mono text-sm"
+                  className="w-full px-4 py-3 pr-12 border-3 border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] font-mono text-sm rounded"
                 />
                 <button
                   type="button"
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-neo-text-secondary)] hover:text-[var(--color-neo-text)]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                 >
                   {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -171,8 +167,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
 
             {/* Model Selection Note */}
-            <div className="p-3 bg-[var(--color-neo-bg-alt)] border-2 border-[var(--color-neo-border)] rounded">
-              <p className="text-sm text-[var(--color-neo-text-secondary)]">
+            <div className="p-3 bg-[var(--color-bg-tertiary)] border-2 border-[var(--color-border-default)] rounded">
+              <p className="text-sm text-[var(--color-text-secondary)]">
                 <strong>Note:</strong> Model selection is now per-project. Select a model from the project dashboard when running the agent.
               </p>
             </div>
@@ -182,28 +178,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <label className="block font-display font-bold mb-2">
                 API Base URL
               </label>
-              <div className="px-4 py-3 border-3 border-[var(--color-neo-border)] bg-[var(--color-neo-bg-alt)] font-mono text-sm text-[var(--color-neo-text-secondary)]">
+              <div className="px-4 py-3 border-3 border-[var(--color-border-default)] bg-[var(--color-bg-tertiary)] font-mono text-sm text-[var(--color-text-secondary)] rounded">
                 {settings?.base_url}
               </div>
             </div>
 
             {/* Error/Success Messages */}
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-[var(--color-neo-danger)]/20 border-2 border-[var(--color-neo-danger)] text-[var(--color-neo-danger)]">
+              <div className="flex items-center gap-2 p-3 bg-[var(--color-status-error)]/20 border-2 border-[var(--color-status-error)] text-[var(--color-status-error)] rounded">
                 <AlertCircle size={16} />
                 <span className="text-sm">{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="flex items-center gap-2 p-3 bg-[var(--color-neo-done)]/20 border-2 border-[var(--color-neo-done)] text-[var(--color-neo-done)]">
+              <div className="flex items-center gap-2 p-3 bg-[var(--color-status-done)]/20 border-2 border-[var(--color-status-done)] text-[var(--color-status-done)] rounded">
                 <Check size={16} />
                 <span className="text-sm">{success}</span>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t-3 border-[var(--color-neo-border)]">
+            <div className="flex justify-end gap-3 pt-4 border-t-3 border-[var(--color-border-default)]">
               <button
                 onClick={onClose}
                 className="neo-btn neo-btn-secondary px-6 py-2"

@@ -150,9 +150,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-neo-bg)]">
+    <div className="min-h-screen bg-[var(--color-bg-primary)]">
       {/* Header */}
-      <header className="bg-[var(--color-neo-text)] text-white border-b-4 border-[var(--color-neo-border)]">
+      <header className="bg-[#1a1a2e] text-white border-b-4 border-[#1a1a2e]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo and Title */}
@@ -165,7 +165,7 @@ function App() {
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-md hover:bg-white/10 transition-colors"
+                className="p-2 rounded-md hover:bg-white/10 transition-colors text-white"
                 title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
               >
                 {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
@@ -174,7 +174,7 @@ function App() {
               {/* Settings Button */}
               <button
                 onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-md hover:bg-white/10 transition-colors"
+                className="p-2 rounded-md hover:bg-white/10 transition-colors text-white"
                 title="Settings"
               >
                 <Settings size={20} />
