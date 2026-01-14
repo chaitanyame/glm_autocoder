@@ -175,7 +175,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <label className="block font-display font-bold mb-2">
                 API Base URL
               </label>
-              <div className="px-4 py-3 border-3 border-[var(--color-border-default)] bg-[var(--color-bg-tertiary)] font-mono text-sm text-[var(--color-text-secondary)] rounded">
+              <div className="px-4 py-3 border-3 border-[var(--color-border-default)] bg-[var(--color-bg-tertiary)] font-mono text-sm text-[var(--color-text-secondary)] rounded overflow-hidden truncate">
                 {settings?.base_url}
               </div>
             </div>
