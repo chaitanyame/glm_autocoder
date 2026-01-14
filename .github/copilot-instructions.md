@@ -1,97 +1,171 @@
 # AutoCoder - AI Coding Agent Instructions
 
-> Inspired by [leonvanzyl/autocoder](https://github.com/leonvanzyl/autocoder). MIT License.
-
 ## Architecture Overview
 
-AutoCoder is an autonomous coding agent using the **two-agent pattern**:
+AutoCoder uses a **two-agent pattern** with GLM models via Z.AI proxy:
 1. **Initializer Agent** - First session reads `prompts/app_spec.txt`, creates features in SQLite
-2. **Coding Agent** - Subsequent sessions implement features one-by-one, marking them passing
+2. **Coding Agent** - Subsequent sessions implement features one-by-one via MCP tools
 
-**Key data flows:**
-- Features stored in `features.db` (SQLite via SQLAlchemy) per project
-- MCP server (`mcp_server/feature_mcp.py`) exposes feature tools to the Claude agent
-- FastAPI server (`server/`) provides REST API + WebSocket for real-time UI updates
-- React UI (`ui/`) shows Kanban board with live agent output streaming
+**Data flow:** React UI ↔ FastAPI (WebSocket) ↔ Process Manager → Claude Agent SDK → MCP Servers (features db, Playwright)
+
+## Quick Start
+
+```bash
+# Web UI (recommended) - serves pre-built React app
+python start_ui.py          # or start_ui.bat on Windows
+
+# CLI mode
+python start.py             # Interactive project selection
+
+# YOLO mode - skip browser testing for rapid prototyping
+python autonomous_agent_demo.py --project-dir my-app --yolo
+
+# Run tests
+python test_security.py     # Security hook validation tests
+```
+
+After UI changes: `cd ui && npm run build`
 
 ## Project Structure
 
-```
-agent.py          # Session loop using Claude Agent SDK
-client.py         # ClaudeSDKClient with security hooks, MCP server config
-security.py       # ALLOWED_COMMANDS allowlist for bash validation
-prompts.py        # Prompt loading with fallback chain
-registry.py       # Cross-platform project registry (~/.autocoder/registry.db)
-
-api/database.py   # SQLAlchemy Feature model
-mcp_server/       # MCP server for feature management tools
-server/           # FastAPI backend (routers/, services/)
-ui/               # React + TypeScript + TanStack Query + Tailwind v4
-```
+| File/Dir | Purpose |
+|----------|---------|
+| `client.py` | ClaudeSDKClient config, MCP servers, security hooks, GLM env vars |
+| `security.py` | `ALLOWED_COMMANDS` bash allowlist (defense-in-depth) |
+| `agent.py` | Session loop, streaming response handling, rate limit detection (`EXIT_CODE_RATE_LIMITED = 42`) |
+| `prompts.py` | Prompt loading with fallback chain (project → templates) |
+| `registry.py` | Cross-platform project registry (`~/.autocoder/registry.db`) |
+| `mcp_server/feature_mcp.py` | MCP tools: `feature_get_next`, `feature_mark_passing`, `feature_create_bulk`, etc. |
+| `server/websocket.py` | Real-time events: `progress`, `agent_status`, `log`, `feature_update` |
+| `server/services/process_manager.py` | Agent subprocess lifecycle, rate limit auto-resume |
+| `server/services/rate_limit_state.py` | Persisted rate limit state (`~/.autocoder/rate_limit_state.json`) |
+| `server/services/assistant_chat_session.py` | Read-only assistant (cannot modify files) |
+| `server/services/spec_chat_session.py` | Interactive spec creation wizard |
+| `api/database.py` | SQLAlchemy `Feature` model, stored in `.autocoder/features.db` |
 
 ## Critical Conventions
 
-### Security Model (Defense-in-Depth)
-Commands are validated in `security.py` via `ALLOWED_COMMANDS` allowlist. When adding new bash commands:
-1. Add to `ALLOWED_COMMANDS` set
-2. If sensitive, add to `COMMANDS_NEEDING_EXTRA_VALIDATION`
-3. Implement validation in `validate_command()`
+### Adding Bash Commands to Allowlist
+```python
+# security.py - three-step process:
+ALLOWED_COMMANDS = {"ls", "npm", ...}  # 1. Add command here
+COMMANDS_NEEDING_EXTRA_VALIDATION = {"pkill", "chmod"}  # 2. If sensitive
+# 3. Implement validation in validate_command() function
+```
 
-### MCP Tool Naming
-Tools registered in `client.py` use prefix `mcp__features__` (e.g., `mcp__features__feature_get_next`). Update both `FEATURE_MCP_TOOLS` list and permissions when adding tools.
+### Adding MCP Tools
+```python
+# 1. Define Pydantic model in mcp_server/feature_mcp.py
+class MyInput(BaseModel):
+    feature_id: int = Field(..., ge=1)
+
+# 2. Add tool function with @mcp.tool() decorator
+
+# 3. Add to client.py FEATURE_MCP_TOOLS list
+FEATURE_MCP_TOOLS = [..., "mcp__features__my_new_tool"]
+
+# 4. Add to permissions list in create_client()
+```
+
+### Adding API Endpoints
+1. Route in `server/routers/*.py` → 2. Types in `ui/src/lib/types.ts` → 3. API fn in `ui/src/lib/api.ts`
 
 ### Prompt Fallback Chain
-1. Project-specific: `{project_dir}/prompts/{name}.md`
-2. Base template: `.claude/templates/{name}.template.md`
+Prompts are loaded in this order (see `prompts.py`):
+1. **Project-specific**: `{project_dir}/prompts/{name}.md`
+2. **Base template**: `.claude/templates/{name}.template.md`
+
+Templates available: `initializer_prompt`, `coding_prompt`, `coding_prompt_yolo`, `app_spec`
+
+### WebSocket Events (`/ws/projects/{project_name}`)
+- `progress` - `{passing, total, percentage}`
+- `agent_status` - `running|paused|stopped|crashed|rate_limited`
+- `log` - Agent stdout lines (streamed, sensitive data redacted)
+- `feature_update` - Triggers UI refresh
 
 ### UI Design System
-Uses **neobrutalism** design with Tailwind CSS v4. Theme tokens in `ui/src/styles/globals.css`:
-- Colors: `--color-neo-pending`, `--color-neo-progress`, `--color-neo-done`
-- Animations: `animate-slide-in`, `animate-pulse-neo`, `animate-shimmer`
-
-### WebSocket Events (`server/websocket.py`)
-Real-time updates via `/ws/projects/{project_name}`:
-- `progress` - Test pass counts
-- `agent_status` - Running/paused/stopped/crashed
-- `log` - Agent stdout lines
-- `feature_update` - Feature status changes
-
-## Development Workflows
-
-### Running the System
-```bash
-# CLI mode
-python start.py
-
-# Web UI (requires pre-built React app)
-python start_ui.py
-# After UI changes: cd ui && npm run build
+Neobrutalism design with Tailwind CSS v4. Theme tokens in `ui/src/styles/globals.css`:
+```css
+--color-neo-pending   /* yellow */
+--color-neo-progress  /* cyan */
+--color-neo-done      /* green */
 ```
 
-### YOLO Mode
-Rapid prototyping without browser testing:
-```bash
-python autonomous_agent_demo.py --project-dir my-app --yolo
+## Rate Limiting & Auto-Resume
+
+When API rate limits are hit:
+1. `agent.py` detects 429 error, prints `RATE_LIMITED:<reset_time>` marker, exits with code 42
+2. `process_manager.py` detects exit code 42, sets status to `rate_limited`
+3. `rate_limit_state.py` persists state to `~/.autocoder/rate_limit_state.json`
+4. Auto-resume is scheduled when reset time arrives
+5. State survives container restarts (Docker volume: `autocoder-data`)
+
+## GLM Model Configuration
+
+The agent uses GLM via Anthropic-compatible proxy (see `client.py`):
+```python
+env_settings = {
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": api_key,  # From ZAI_API_KEY env var
+}
 ```
-Skips Playwright MCP, only runs lint/type-check.
 
-### Adding a New Feature MCP Tool
-1. Define Pydantic model in `mcp_server/feature_mcp.py`
-2. Add tool function with `@mcp.tool()` decorator
-3. Add tool name to `FEATURE_MCP_TOOLS` in `client.py`
-4. Add to permissions list in `create_client()`
+Model defaults: `glm-4.7` (opus/sonnet), `glm-4.5-air` (haiku). Per-project model stored in registry.
 
-### Adding a New API Endpoint
-1. Add route in appropriate `server/routers/*.py` file
-2. If stateful, add service in `server/services/`
-3. Add TypeScript types in `ui/src/lib/types.ts`
-4. Add API function in `ui/src/lib/api.ts`
+## Docker Support
 
-## Key Files to Reference
+Multi-stage build: `Dockerfile` builds React UI, then Python runtime with Chromium for Playwright.
+```bash
+docker compose up -d --build   # Uses host's projects/ volume
 
-- `client.py` - Security settings, MCP config, allowed tools
-- `security.py` - Bash command allowlist
-- `api/database.py` - Feature SQLAlchemy model
-- `mcp_server/feature_mcp.py` - MCP tools exposed to agent
-- `server/websocket.py` - Real-time event broadcasting
-- `ui/src/lib/types.ts` - TypeScript type definitions
+# Required .env variables:
+HOST_PROJECTS_DIR=/path/to/projects
+ZAI_API_KEY=your-api-key
+CORS_ORIGINS=http://remote-host:8888  # Optional for remote access
+```
+
+Environment: `DOCKER_ENV=1` enables headless Chromium with `--no-sandbox`
+
+## Project File Layout
+
+Generated projects contain:
+- `prompts/app_spec.txt` - Application specification (XML format)
+- `prompts/*.md` - Optional project-specific prompt overrides
+- `.autocoder/features.db` - SQLite feature database
+- `.autocoder/.agent.lock` - Prevents multiple agent instances
+- `.autocoder/logs/` - Session logs and progress files
+- `init.sh` - Environment setup script
+- `claude-progress.txt` - Session progress notes
+
+## Claude Code Integration
+
+- `.claude/commands/create-spec.md` - `/create-spec` slash command for interactive spec wizard
+- `.claude/commands/checkpoint.md` - `/checkpoint` for saving progress
+- `.claude/skills/frontend-design/` - Skill for distinctive neobrutalism UI design
+- `.claude/templates/` - Base prompt templates copied to new projects
+
+## Assistant & Spec Chat
+
+Two auxiliary chat modes in `server/services/`:
+
+**AssistantChat** (`assistant_chat_session.py`):
+- Read-only access (Read, Glob, Grep, WebFetch, WebSearch)
+- Feature status tools (stats, next, regression) but no modifications
+- Answers questions about codebase without changing files
+
+**SpecChat** (`spec_chat_session.py`):
+- Multi-phase wizard using `.claude/commands/create-spec.md`
+- Phases: Overview → Involvement Level → Tech Prefs → Features → Technical Details → Approval
+- Generates `prompts/app_spec.txt` when complete
+
+## Testing
+
+```bash
+# Security hook tests (command validation)
+python test_security.py
+
+# WebSocket endpoint tests
+python -m pytest tests/test_websocket_endpoints.py
+```
+
+Security tests validate: command extraction, allowlist enforcement, chmod/pkill restrictions, init.sh validation
