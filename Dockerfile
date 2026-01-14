@@ -33,6 +33,8 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    wget \
+    gnupg \
     xvfb \
     libgbm1 \
     libnss3 \
@@ -48,6 +50,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libcairo2 \
     libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (needed for Claude CLI)
@@ -92,8 +101,8 @@ ENV HOME=/home/autocoder
 # Switch to non-root user
 USER autocoder
 
-# Install Playwright browsers as non-root user
-RUN npx playwright install chromium
+# Install Playwright browsers as non-root user (both chrome and chromium)
+RUN npx playwright install chrome chromium
 
 # Expose the web UI port
 EXPOSE 8888
