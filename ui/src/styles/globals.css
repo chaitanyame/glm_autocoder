@@ -5,32 +5,72 @@
    ============================================================================ */
 
 @theme {
-  /* Colors */
-  --color-neo-bg: #fffef5;
-  --color-neo-card: #ffffff;
-  --color-neo-pending: #ffd60a;
-  --color-neo-progress: #00b4d8;
-  --color-neo-done: #70e000;
-  --color-neo-accent: #ff006e;
-  --color-neo-danger: #ff5400;
-  --color-neo-border: #1a1a1a;
-  --color-neo-text: #1a1a1a;
-  --color-neo-text-secondary: #4a4a4a;
+  /* Semantic Color Tokens */
+  --color-bg-primary: #fffef5;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f5f5f0;
+  --color-bg-elevated: #ffffff;
+  --color-bg-overlay: rgba(0, 0, 0, 0.4);
+  
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #4a4a4a;
+  --color-text-tertiary: #6a6a6a;
+  --color-text-inverse: #ffffff;
+  
+  --color-border-default: #1a1a1a;
+  --color-border-subtle: #e0e0d8;
+  --color-border-strong: #000000;
+  
+  --color-status-pending: #ffd60a;
+  --color-status-progress: #00b4d8;
+  --color-status-done: #70e000;
+  --color-status-error: #ff5400;
+  
+  --color-accent-primary: #ff006e;
+  --color-accent-secondary: #8338ec;
+  --color-accent-tertiary: #3a86ff;
+  
+  /* Legacy Neo colors for backwards compatibility */
+  --color-neo-bg: var(--color-bg-primary);
+  --color-neo-card: var(--color-bg-secondary);
+  --color-neo-pending: var(--color-status-pending);
+  --color-neo-progress: var(--color-status-progress);
+  --color-neo-done: var(--color-status-done);
+  --color-neo-accent: var(--color-accent-primary);
+  --color-neo-danger: var(--color-status-error);
+  --color-neo-border: var(--color-border-default);
+  --color-neo-text: var(--color-text-primary);
+  --color-neo-text-secondary: var(--color-text-secondary);
 
   /* Fonts */
-  --font-neo-display: 'Space Grotesk', sans-serif;
-  --font-neo-sans: 'DM Sans', sans-serif;
-  --font-neo-mono: 'JetBrains Mono', monospace;
+  --font-neo-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-neo-sans: 'Inter', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-neo-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
   /* Shadows */
   --shadow-neo-sm: 2px 2px 0px rgba(0, 0, 0, 1);
   --shadow-neo-md: 4px 4px 0px rgba(0, 0, 0, 1);
   --shadow-neo-lg: 6px 6px 0px rgba(0, 0, 0, 1);
   --shadow-neo-xl: 8px 8px 0px rgba(0, 0, 0, 1);
+  
+  /* Elevated shadows for dark mode */
+  --shadow-elevated-sm: 2px 2px 0px rgba(255, 255, 255, 0.1);
+  --shadow-elevated-md: 4px 4px 0px rgba(255, 255, 255, 0.1);
+  --shadow-elevated-lg: 6px 6px 0px rgba(255, 255, 255, 0.15);
+  --shadow-elevated-xl: 8px 8px 0px rgba(255, 255, 255, 0.15);
 
   /* Transitions */
   --transition-neo-fast: 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition-neo-normal: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-theme: 0.2s ease-in-out;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
 }
 
 /* ============================================================================
@@ -38,31 +78,111 @@
    ============================================================================ */
 
 @layer base {
-  /* Ensure CSS variables are available globally */
+  /* Light Mode (Default) */
   :root {
-    --color-neo-bg: #fffef5;
-    --color-neo-card: #ffffff;
-    --color-neo-pending: #ffd60a;
-    --color-neo-progress: #00b4d8;
-    --color-neo-done: #70e000;
-    --color-neo-accent: #ff006e;
-    --color-neo-danger: #ff5400;
-    --color-neo-border: #1a1a1a;
-    --color-neo-text: #1a1a1a;
-    --color-neo-text-secondary: #4a4a4a;
-    --font-neo-display: 'Space Grotesk', sans-serif;
-    --font-neo-sans: 'DM Sans', sans-serif;
-    --font-neo-mono: 'JetBrains Mono', monospace;
+    --color-bg-primary: #fffef5;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #f5f5f0;
+    --color-bg-elevated: #ffffff;
+    --color-bg-overlay: rgba(0, 0, 0, 0.4);
+    
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #4a4a4a;
+    --color-text-tertiary: #6a6a6a;
+    --color-text-inverse: #ffffff;
+    
+    --color-border-default: #1a1a1a;
+    --color-border-subtle: #e0e0d8;
+    --color-border-strong: #000000;
+    
+    --color-status-pending: #ffd60a;
+    --color-status-progress: #00b4d8;
+    --color-status-done: #70e000;
+    --color-status-error: #ff5400;
+    
+    --color-accent-primary: #ff006e;
+    --color-accent-secondary: #8338ec;
+    --color-accent-tertiary: #3a86ff;
+    
+    /* Legacy compatibility */
+    --color-neo-bg: var(--color-bg-primary);
+    --color-neo-card: var(--color-bg-secondary);
+    --color-neo-pending: var(--color-status-pending);
+    --color-neo-progress: var(--color-status-progress);
+    --color-neo-done: var(--color-status-done);
+    --color-neo-accent: var(--color-accent-primary);
+    --color-neo-danger: var(--color-status-error);
+    --color-neo-border: var(--color-border-default);
+    --color-neo-text: var(--color-text-primary);
+    --color-neo-text-secondary: var(--color-text-secondary);
+
+    --font-neo-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-neo-sans: 'Inter', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-neo-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    
     --shadow-neo-sm: 2px 2px 0px rgba(0, 0, 0, 1);
     --shadow-neo-md: 4px 4px 0px rgba(0, 0, 0, 1);
     --shadow-neo-lg: 6px 6px 0px rgba(0, 0, 0, 1);
     --shadow-neo-xl: 8px 8px 0px rgba(0, 0, 0, 1);
+    --shadow-active: var(--shadow-neo-md);
+  }
+
+  /* Dark Mode */
+  :root.dark {
+    --color-bg-primary: #0d0d0d;
+    --color-bg-secondary: #1a1a1a;
+    --color-bg-tertiary: #262626;
+    --color-bg-elevated: #2d2d2d;
+    --color-bg-overlay: rgba(0, 0, 0, 0.7);
+    
+    --color-text-primary: #f5f5f5;
+    --color-text-secondary: #b0b0b0;
+    --color-text-tertiary: #808080;
+    --color-text-inverse: #1a1a1a;
+    
+    --color-border-default: #f5f5f5;
+    --color-border-subtle: #404040;
+    --color-border-strong: #ffffff;
+    
+    --color-status-pending: #ffdb58;
+    --color-status-progress: #0dcaf0;
+    --color-status-done: #86efac;
+    --color-status-error: #ff6b35;
+    
+    --color-accent-primary: #ff1a8c;
+    --color-accent-secondary: #9d5cff;
+    --color-accent-tertiary: #5aa4ff;
+    
+    /* Legacy compatibility for dark mode */
+    --color-neo-bg: var(--color-bg-primary);
+    --color-neo-card: var(--color-bg-secondary);
+    --color-neo-pending: var(--color-status-pending);
+    --color-neo-progress: var(--color-status-progress);
+    --color-neo-done: var(--color-status-done);
+    --color-neo-accent: var(--color-accent-primary);
+    --color-neo-danger: var(--color-status-error);
+    --color-neo-border: var(--color-border-default);
+    --color-neo-text: var(--color-text-primary);
+    --color-neo-text-secondary: var(--color-text-secondary);
+    
+    /* Use elevated shadows in dark mode */
+    --shadow-neo-sm: 2px 2px 0px rgba(255, 255, 255, 0.1);
+    --shadow-neo-md: 4px 4px 0px rgba(255, 255, 255, 0.1);
+    --shadow-neo-lg: 6px 6px 0px rgba(255, 255, 255, 0.15);
+    --shadow-neo-xl: 8px 8px 0px rgba(255, 255, 255, 0.15);
+    --shadow-active: var(--shadow-neo-lg);
+  }
+
+  * {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: var(--transition-theme);
+    transition-timing-function: ease-in-out;
   }
 
   body {
     font-family: var(--font-neo-sans);
-    background-color: var(--color-neo-bg);
-    color: var(--color-neo-text);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
   }
 
   /* Force form elements to inherit colors properly */
@@ -82,15 +202,15 @@
 @layer components {
   /* Cards */
   .neo-card {
-    background: var(--color-neo-card);
-    border: 3px solid var(--color-neo-border);
+    background: var(--color-bg-secondary);
+    border: 3px solid var(--color-border-default);
     box-shadow: var(--shadow-neo-md);
     transition: transform var(--transition-neo-fast), box-shadow var(--transition-neo-fast);
   }
 
   .neo-card:hover {
     transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-neo-lg);
+    box-shadow: var(--shadow-active);
   }
 
   /* Buttons */
@@ -105,9 +225,9 @@
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.025em;
-    color: #1a1a1a;
-    background-color: #ffffff;
-    border: 3px solid #1a1a1a;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary);
+    border: 3px solid var(--color-border-default);
     box-shadow: var(--shadow-neo-md);
     transition: transform var(--transition-neo-fast), box-shadow var(--transition-neo-fast);
     cursor: pointer;
@@ -115,11 +235,11 @@
 
   .neo-btn:hover {
     transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-neo-lg);
+    box-shadow: var(--shadow-active);
   }
 
   .neo-btn:active {
-    transform: translate(2px, 2px);
+    transform: translate(1px, 1px);
     box-shadow: var(--shadow-neo-sm);
   }
 
@@ -131,34 +251,34 @@
   }
 
   .neo-btn-primary {
-    background-color: #ff006e;
-    color: #ffffff;
+    background-color: var(--color-accent-primary);
+    color: var(--color-text-inverse);
   }
 
   .neo-btn-success {
-    background-color: #70e000;
-    color: #1a1a1a;
+    background-color: var(--color-status-done);
+    color: var(--color-text-inverse);
   }
 
   .neo-btn-warning {
-    background-color: #ffd60a;
-    color: #1a1a1a;
+    background-color: var(--color-status-pending);
+    color: var(--color-text-inverse);
   }
 
   .neo-btn-danger {
-    background-color: #ff5400;
-    color: #ffffff;
+    background-color: var(--color-status-error);
+    color: var(--color-text-inverse);
   }
 
   .neo-btn-ghost {
     background-color: transparent;
-    color: #1a1a1a;
+    color: var(--color-text-primary);
     box-shadow: none;
   }
 
   .neo-btn-ghost:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: #1a1a1a;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
     box-shadow: none;
     transform: none;
   }
@@ -169,27 +289,31 @@
     align-items: center;
     justify-content: center;
     padding: 0.25rem;
-    color: #1a1a1a;
-    background-color: #ffffff;
-    border: 2px solid #1a1a1a;
-    box-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary);
+    border: 2px solid var(--color-border-default);
+    box-shadow: 2px 2px 0px var(--color-border-default);
     transition: transform var(--transition-neo-fast), box-shadow var(--transition-neo-fast);
     cursor: pointer;
   }
 
   .neo-button-sm:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0px rgba(0, 0, 0, 1);
+    box-shadow: 3px 3px 0px var(--color-border-default);
   }
 
   .neo-button-sm:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px rgba(0, 0, 0, 1);
+    box-shadow: 1px 1px 0px var(--color-border-default);
   }
 
-  /* Cream background utility */
+  /* Background utilities */
   .neo-cream {
-    background-color: #fffef5;
+    background-color: var(--color-bg-primary);
+  }
+  
+  .neo-bg-elevated {
+    background-color: var(--color-bg-elevated);
   }
 
   /* Inputs */
@@ -198,15 +322,15 @@
     padding: 0.75rem 1rem;
     font-family: var(--font-neo-sans);
     font-size: 1rem;
-    color: #1a1a1a;
-    background-color: #ffffff;
-    border: 3px solid #1a1a1a;
-    box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.1);
-    transition: transform var(--transition-neo-fast), box-shadow var(--transition-neo-fast);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary);
+    border: 3px solid var(--color-border-default);
+    box-shadow: 3px 3px 0px var(--color-border-subtle);
+    transition: transform var(--transition-neo-fast), box-shadow var(--transition-neo-fast), border-color var(--transition-neo-fast);
   }
 
   .neo-input::placeholder {
-    color: #4a4a4a;
+    color: var(--color-text-secondary);
     opacity: 0.7;
   }
 
@@ -214,7 +338,7 @@
     outline: none;
     transform: translate(-1px, -1px);
     box-shadow: var(--shadow-neo-md);
-    border-color: #ff006e;
+    border-color: var(--color-accent-primary);
   }
 
   /* Badge */
@@ -226,23 +350,23 @@
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
-    color: #1a1a1a;
-    border: 2px solid #1a1a1a;
+    color: var(--color-text-inverse);
+    border: 2px solid transparent;
   }
 
   /* Progress Bar */
   .neo-progress {
     width: 100%;
     height: 2rem;
-    background-color: #ffffff;
-    border: 3px solid #1a1a1a;
+    background-color: var(--color-bg-secondary);
+    border: 3px solid var(--color-border-default);
     box-shadow: var(--shadow-neo-sm);
     overflow: hidden;
   }
 
   .neo-progress-fill {
     height: 100%;
-    background-color: #70e000;
+    background-color: var(--color-status-done);
     transition: width 0.5s ease-out;
   }
 
@@ -250,8 +374,8 @@
   .neo-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
+    background: var(--color-bg-overlay);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -259,8 +383,8 @@
   }
 
   .neo-modal {
-    background-color: #ffffff;
-    border: 4px solid #1a1a1a;
+    background-color: var(--color-bg-elevated);
+    border: 4px solid var(--color-border-default);
     box-shadow: var(--shadow-neo-xl);
     animation: popIn 0.3s var(--transition-neo-fast);
     max-width: 90vw;
@@ -270,8 +394,8 @@
 
   /* Dropdown */
   .neo-dropdown {
-    background-color: #ffffff;
-    border: 3px solid #1a1a1a;
+    background-color: var(--color-bg-elevated);
+    border: 3px solid var(--color-border-default);
     box-shadow: var(--shadow-neo-lg);
   }
 
@@ -280,7 +404,7 @@
     width: 100%;
     padding: 0.75rem 1rem;
     cursor: pointer;
-    color: #1a1a1a;
+    color: var(--color-text-primary);
     background-color: transparent;
     text-align: left;
     border: none;
@@ -289,28 +413,48 @@
   }
 
   .neo-dropdown-item:hover {
-    background-color: #ffd60a;
-    color: #1a1a1a;
+    background-color: var(--color-status-pending);
+    color: var(--color-text-inverse);
   }
 
   /* Tooltip */
   .neo-tooltip {
-    background-color: #1a1a1a;
-    color: #ffffff;
+    background-color: var(--color-text-primary);
+    color: var(--color-text-inverse);
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
-    border: 2px solid #1a1a1a;
+    border: 2px solid var(--color-border-default);
     box-shadow: var(--shadow-neo-sm);
   }
 
   /* Empty State */
   .neo-empty-state {
-    background-color: var(--color-neo-bg);
-    border: 4px dashed #1a1a1a;
-    padding: 2rem;
+    background-color: var(--color-bg-primary);
+    border: 4px dashed var(--color-border-default);
+    padding: var(--spacing-xl);
     text-align: center;
+  }
+  
+  /* Error Banner */
+  .neo-error-banner {
+    background-color: var(--color-status-error);
+    color: var(--color-text-inverse);
+    border: 3px solid var(--color-border-default);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-neo-md);
+  }
+  
+  /* Loading State */
+  .neo-loader {
+    color: var(--color-status-progress);
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 }
 
@@ -383,6 +527,47 @@
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--color-accent-primary),
+                0 0 10px var(--color-accent-primary);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--color-accent-primary),
+                0 0 20px var(--color-accent-primary),
+                0 0 30px var(--color-accent-primary);
+  }
+}
+
 /* ============================================================================
    Utilities Layer
    ============================================================================ */
@@ -411,17 +596,33 @@
   .animate-shimmer {
     background: linear-gradient(
       90deg,
-      var(--color-neo-text) 0%,
-      var(--color-neo-text) 40%,
-      var(--color-neo-progress) 50%,
-      var(--color-neo-text) 60%,
-      var(--color-neo-text) 100%
+      var(--color-text-primary) 0%,
+      var(--color-text-primary) 40%,
+      var(--color-status-progress) 50%,
+      var(--color-text-primary) 60%,
+      var(--color-text-primary) 100%
     );
     background-size: 200% 100%;
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
     animation: shimmer 2s ease-in-out infinite;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .animate-bounce {
+    animation: bounce 1s ease-in-out infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
   }
 
   .font-display {
@@ -447,15 +648,21 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #fffef5;
-  border: 2px solid #1a1a1a;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-border-default);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1a1a1a;
-  border: 2px solid #1a1a1a;
+  background: var(--color-border-default);
+  border: 2px solid var(--color-border-default);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
+  background: var(--color-text-secondary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) var(--color-bg-primary);
 }

@@ -4,6 +4,7 @@ import { useProjects, useFeatures, useAgentStatus } from './hooks/useProjects'
 import { useProjectWebSocket } from './hooks/useWebSocket'
 import { useFeatureSound } from './hooks/useFeatureSound'
 import { useCelebration } from './hooks/useCelebration'
+import { useTheme } from './hooks/useTheme'
 
 const STORAGE_KEY = 'autocoder-selected-project'
 import { ProjectSelector } from './components/ProjectSelector'
@@ -18,10 +19,12 @@ import { AgentThought } from './components/AgentThought'
 import { AssistantFAB } from './components/AssistantFAB'
 import { AssistantPanel } from './components/AssistantPanel'
 import { SettingsModal } from './components/SettingsModal'
-import { Plus, Loader2, Settings } from 'lucide-react'
+import { Plus, Loader2, Settings, Moon, Sun } from 'lucide-react'
 import type { Feature } from './lib/types'
 
 function App() {
+  const { theme, toggleTheme } = useTheme()
+  
   // Initialize selected project from localStorage
   const [selectedProject, setSelectedProject] = useState<string | null>(() => {
     try {
@@ -159,6 +162,15 @@ function App() {
 
             {/* Controls */}
             <div className="flex items-center gap-4">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-md hover:bg-white/10 transition-colors"
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              >
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              </button>
+              
               {/* Settings Button */}
               <button
                 onClick={() => setSettingsOpen(true)}
