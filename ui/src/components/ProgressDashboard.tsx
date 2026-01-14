@@ -81,13 +81,13 @@ export function ProgressDashboard({
         <div className="flex items-center gap-2">
           {isConnected ? (
             <>
-              <Wifi size={16} className="text-[var(--color-neo-done)]" />
-              <span className="text-sm text-[var(--color-neo-done)]">Live</span>
+              <Wifi size={16} className="text-[var(--color-status-done)]" />
+              <span className="text-sm text-[var(--color-status-done)]">Live</span>
             </>
           ) : (
             <>
-              <WifiOff size={16} className="text-[var(--color-neo-danger)]" />
-              <span className="text-sm text-[var(--color-neo-danger)]">Offline</span>
+              <WifiOff size={16} className="text-[var(--color-status-error)]" />
+              <span className="text-sm text-[var(--color-status-error)]">Offline</span>
             </>
           )}
         </div>
@@ -95,9 +95,9 @@ export function ProgressDashboard({
 
       {/* Host Path Display */}
       {hostPath && (
-        <div className="mb-4 p-3 bg-[var(--color-neo-cream)] border-2 border-[var(--color-neo-border)] rounded">
+        <div className="mb-4 p-3 bg-[var(--color-bg-tertiary)] border-2 border-[var(--color-border-default)] rounded">
           <div className="flex items-center gap-2 mb-1">
-            <FolderOpen size={14} className="text-[var(--color-neo-text-secondary)]" />
+            <FolderOpen size={14} className="text-[var(--color-text-secondary)]" />
             <span className="text-xs font-medium text-[var(--color-neo-text-secondary)] uppercase">
               Project Path (VS Code)
             </span>
@@ -159,7 +159,7 @@ export function ProgressDashboard({
         <span className="font-display text-6xl font-bold">
           {percentage.toFixed(1)}
         </span>
-        <span className="font-display text-3xl font-bold text-[var(--color-neo-text-secondary)]">
+        <span className="font-display text-3xl font-bold text-[var(--color-text-secondary)]">
           %
         </span>
       </div>
@@ -175,19 +175,19 @@ export function ProgressDashboard({
       {/* Stats */}
       <div className="flex justify-center gap-8 text-center">
         <div>
-          <span className="font-mono text-3xl font-bold text-[var(--color-neo-done)]">
+          <span className="font-mono text-3xl font-bold text-[var(--color-status-done)]">
             {passing}
           </span>
-          <span className="block text-sm text-[var(--color-neo-text-secondary)] uppercase">
+          <span className="block text-sm text-[var(--color-text-secondary)] uppercase">
             Passing
           </span>
         </div>
-        <div className="text-4xl text-[var(--color-neo-text-secondary)]">/</div>
+        <div className="text-4xl text-[var(--color-text-secondary)]">/</div>
         <div>
           <span className="font-mono text-3xl font-bold">
             {total}
           </span>
-          <span className="block text-sm text-[var(--color-neo-text-secondary)] uppercase">
+          <span className="block text-sm text-[var(--color-text-secondary)] uppercase">
             Total
           </span>
         </div>

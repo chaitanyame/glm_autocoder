@@ -36,7 +36,7 @@ export function FeatureCard({ feature, onClick, isInProgress }: FeatureCardProps
       className={`
         w-full text-left neo-card p-4 cursor-pointer
         ${isInProgress ? 'animate-pulse-neo' : ''}
-        ${feature.passes ? 'border-[var(--color-neo-done)]' : ''}
+        ${feature.passes ? 'border-[var(--color-status-done)]' : ''}
       `}
     >
       {/* Header */}
@@ -47,7 +47,7 @@ export function FeatureCard({ feature, onClick, isInProgress }: FeatureCardProps
         >
           {feature.category}
         </span>
-        <span className="font-mono text-sm text-[var(--color-neo-text-secondary)]">
+        <span className="font-mono text-sm text-[var(--color-text-secondary)]">
           #{feature.priority}
         </span>
       </div>
@@ -58,7 +58,7 @@ export function FeatureCard({ feature, onClick, isInProgress }: FeatureCardProps
       </h3>
 
       {/* Description */}
-      <p className="text-sm text-[var(--color-neo-text-secondary)] line-clamp-2 mb-3">
+      <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 mb-3">
         {feature.description}
       </p>
 
@@ -66,18 +66,18 @@ export function FeatureCard({ feature, onClick, isInProgress }: FeatureCardProps
       <div className="flex items-center gap-2 text-sm">
         {isInProgress ? (
           <>
-            <Loader2 size={16} className="animate-spin text-[var(--color-neo-progress)]" />
-            <span className="text-[var(--color-neo-progress)] font-bold">Processing...</span>
+            <Loader2 size={16} className="animate-spin text-[var(--color-status-progress)]" />
+            <span className="text-[var(--color-status-progress)] font-bold">Processing...</span>
           </>
         ) : feature.passes ? (
           <>
-            <CheckCircle2 size={16} className="text-[var(--color-neo-done)]" />
-            <span className="text-[var(--color-neo-done)] font-bold">Complete</span>
+            <CheckCircle2 size={16} className="text-[var(--color-status-done)]" />
+            <span className="text-[var(--color-status-done)] font-bold">Complete</span>
           </>
         ) : (
           <>
-            <Circle size={16} className="text-[var(--color-neo-text-secondary)]" />
-            <span className="text-[var(--color-neo-text-secondary)]">Pending</span>
+            <Circle size={16} className="text-[var(--color-text-secondary)]" />
+            <span className="text-[var(--color-text-secondary)]">Pending</span>
           </>
         )}
       </div>

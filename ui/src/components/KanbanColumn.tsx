@@ -25,23 +25,26 @@ export function KanbanColumn({
   return (
     <div
       className="neo-card overflow-hidden"
-      style={{ borderColor: colorMap[color] }}
+      style={{ borderColor: colorMap[color], borderWidth: '2px' }}
     >
       {/* Header */}
       <div
-        className="px-4 py-3 border-b-3 border-[var(--color-neo-border)]"
-        style={{ backgroundColor: colorMap[color] }}
+        className="px-4 py-3 border-b-2"
+        style={{ 
+          backgroundColor: colorMap[color],
+          borderColor: colorMap[color]
+        }}
       >
-        <h2 className="font-display text-lg font-bold uppercase flex items-center justify-between text-[var(--color-neo-text)]">
+        <h2 className="font-display text-lg font-bold uppercase flex items-center justify-between text-[#1a1a1a]">
           {title}
-          <span className="neo-badge bg-white text-[var(--color-neo-text)]">{count}</span>
+          <span className="neo-badge bg-white/90 text-[#1a1a1a] border-0">{count}</span>
         </h2>
       </div>
 
       {/* Cards */}
-      <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto bg-[var(--color-neo-bg)]">
+      <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto bg-[var(--color-bg-primary)]">
         {features.length === 0 ? (
-          <div className="text-center py-8 text-[var(--color-neo-text-secondary)]">
+          <div className="text-center py-8 text-[var(--color-text-secondary)]">
             No features
           </div>
         ) : (
