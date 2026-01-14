@@ -165,19 +165,19 @@ function App() {
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-md hover:bg-white/10 transition-colors text-white"
+                className="p-2 rounded-md hover:bg-white/10 transition-colors"
                 title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
               >
-                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                {theme === 'light' ? <Moon size={20} color="#ffffff" /> : <Sun size={20} color="#ffffff" />}
               </button>
               
               {/* Settings Button */}
               <button
                 onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-md hover:bg-white/10 transition-colors text-white"
+                className="p-2 rounded-md hover:bg-white/10 transition-colors"
                 title="Settings"
               >
-                <Settings size={20} />
+                <Settings size={20} color="#ffffff" />
               </button>
 
               <ProjectSelector
