@@ -69,20 +69,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
-
+    <div className="neo-modal-backdrop" onClick={onClose}>
       {/* Modal */}
-      <div className="relative neo-card w-full max-w-lg mx-4 p-6 animate-slide-in">
+      <div 
+        className="neo-modal w-full max-w-lg mx-4 p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <SettingsIcon size={24} />
-            <h2 className="font-display text-2xl font-bold">Settings</h2>
+            <SettingsIcon size={24} className="text-[var(--color-text-primary)]" />
+            <h2 className="font-display text-2xl font-bold text-[var(--color-text-primary)]">Settings</h2>
           </div>
           <button
             onClick={onClose}
