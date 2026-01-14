@@ -213,6 +213,8 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
         # Use chromium in Docker (installed via npx), chrome in standalone (system-installed)
         if os.environ.get("DOCKER_ENV") == "1":
             playwright_args.extend(["--browser", "chromium"])
+            # Required flags for Chromium in Docker environment
+            playwright_args.append("--no-sandbox")  # Chrome requires this in Docker
         else:
             playwright_args.extend(["--browser", "chrome"])
         
