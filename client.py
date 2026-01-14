@@ -208,16 +208,36 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
         # Use --isolated to prevent browser profile conflicts between projects
         playwright_args = [
             "@playwright/mcp@latest",
+        ]
+        
+        # Use chromium in Docker (installed via npx), chrome in standalone (system-installed)
+        if os.environ.get("DOCKER_ENV") == "1":
+            playwright_args.extend(["--browser", "chromium"])
+        else:
+            playwright_args.extend(["--browser", "chrome"])
+        
+        playwright_args.extend([
             "--viewport-size", "1280x720",
             "--isolated",  # Each session gets an independent ephemeral browser context
-        ]
+        ])
+        
         if os.environ.get("DOCKER_ENV") == "1" or not os.environ.get("DISPLAY"):
             playwright_args.append("--headless")
         
-        mcp_servers["playwright"] = {
+        # Build MCP server config
+        playwright_config = {
             "command": "npx",
             "args": playwright_args,
         }
+        
+        # In Docker, pass environment variables to MCP server
+        if os.environ.get("DOCKER_ENV") == "1":
+            playwright_config["env"] = {
+                "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/home/autocoder/ms-playwright"),
+                "HOME": os.environ.get("HOME", "/home/autocoder"),
+            }
+        
+        mcp_servers["playwright"] = playwright_config
 
     return ClaudeSDKClient(
         options=ClaudeAgentOptions(
