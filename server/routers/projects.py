@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from api.database import get_lock_file_path
 from ..schemas import (
     ProjectCreate,
     ProjectDetail,
@@ -280,8 +281,8 @@ async def delete_project(name: str, delete_files: bool = False):
     if not project_dir:
         raise HTTPException(status_code=404, detail=f"Project '{name}' not found")
 
-    # Check if agent is running
-    lock_file = project_dir / ".agent.lock"
+    # Check if agent is running (lock file now in .autocoder/)
+    lock_file = get_lock_file_path(project_dir)
     if lock_file.exists():
         raise HTTPException(
             status_code=409,

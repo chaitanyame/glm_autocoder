@@ -37,6 +37,36 @@ Use the feature_get_next tool
 Understanding the `app_spec.txt` is critical - it contains the full requirements
 for the application you're building.
 
+---
+
+## PROJECT ORGANIZATION RULES
+
+**CRITICAL:** Keep the project root clean. Use the `.autocoder/` folder for operational files.
+
+**File placement rules:**
+
+| File Type | Location | Examples |
+|-----------|----------|----------|
+| Source code | `frontend/`, `backend/` | Components, APIs, models |
+| Config files | Root | `package.json`, `tsconfig.json` |
+| Progress/logs | `.autocoder/logs/` | `*-progress.txt`, `SESSION*.txt` |
+| Test scripts | `.autocoder/tests/` | `test-*.js`, `verify-*.js`, `check-*.js` |
+| Temp files | `.autocoder/temp/` | `create-*.js`, test data files |
+| Reports | `.autocoder/reports/` | `verification-*.md`, analysis outputs |
+
+**NEVER create these in project root:**
+- ❌ `*-progress.txt`, `*-summary.txt` → Use `.autocoder/logs/`
+- ❌ `test-*.js`, `verify-*.js`, `check-*.js` → Use `.autocoder/tests/`
+- ❌ `create-*.js`, `cleanup-*.js` → Use `.autocoder/temp/`
+- ❌ `*_session*.txt`, `SESSION*.txt` → Use `.autocoder/logs/`
+
+**Exception:** `claude-progress.txt` stays in root for quick agent context.
+
+**Before creating any file**, ask: "Is this source code or operational?" 
+If operational → use `.autocoder/` subfolder.
+
+---
+
 ### STEP 2: START SERVERS (IF NOT RUNNING)
 
 If `init.sh` exists, run it:

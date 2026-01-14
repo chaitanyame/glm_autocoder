@@ -145,11 +145,24 @@ MCP tools available to the agent:
 ### Project Structure for Generated Apps
 
 Projects can be stored in any directory (registered in `~/.autocoder/registry.db`). Each project contains:
+
+**User-editable files (in root):**
 - `prompts/app_spec.txt` - Application specification (XML format)
-- `prompts/initializer_prompt.md` - First session prompt
-- `prompts/coding_prompt.md` - Continuation session prompt
-- `features.db` - SQLite database with feature test cases
-- `.agent.lock` - Lock file to prevent multiple agent instances
+- `prompts/initializer_prompt.md` - First session prompt (optional override)
+- `prompts/coding_prompt.md` - Continuation session prompt (optional override)
+- `init.sh` - Environment setup script
+- `claude-progress.txt` - Session progress notes
+- `.gitignore` - Git ignore configuration
+
+**AutoCoder operational files (in `.autocoder/`):**
+- `.autocoder/features.db` - SQLite database with feature test cases
+- `.autocoder/.agent.lock` - Lock file to prevent multiple agent instances
+- `.autocoder/logs/` - Session logs, progress files, summaries
+- `.autocoder/tests/` - Test scripts, verification files
+- `.autocoder/temp/` - Temporary files, test data
+- `.autocoder/reports/` - Generated reports, analysis outputs
+
+**Note:** Legacy projects may have `features.db` and `.agent.lock` in root - these are auto-migrated to `.autocoder/` on first access.
 
 ### Security Model
 

@@ -19,6 +19,9 @@ from typing import Awaitable, Callable, Literal, Set
 
 import psutil
 
+# Import the centralized lock file path helper
+from api.database import get_lock_file_path
+
 logger = logging.getLogger(__name__)
 
 # Patterns for sensitive data that should be redacted from output
@@ -81,8 +84,8 @@ class AgentProcessManager:
         self._status_callbacks: Set[Callable[[str], Awaitable[None]]] = set()
         self._callbacks_lock = threading.Lock()
 
-        # Lock file to prevent multiple instances (stored in project directory)
-        self.lock_file = self.project_dir / ".agent.lock"
+        # Lock file to prevent multiple instances (stored in .autocoder/ directory)
+        self.lock_file = get_lock_file_path(self.project_dir)
 
     @property
     def status(self) -> Literal["stopped", "running", "paused", "crashed"]:

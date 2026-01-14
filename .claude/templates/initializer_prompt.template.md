@@ -509,6 +509,102 @@ Set up the basic project structure based on what's specified in `app_spec.txt`.
 This typically includes directories for frontend, backend, and any other
 components mentioned in the spec.
 
+**Create the `.autocoder/` operational folder structure:**
+
+```bash
+# Create operational folders to keep project root clean
+mkdir -p .autocoder/logs .autocoder/tests .autocoder/temp .autocoder/reports
+```
+
+The `.autocoder/` folder contains all AutoCoder operational files:
+- `logs/` - Session progress, summaries, debug logs
+- `tests/` - Test scripts, verification files
+- `temp/` - Temporary files, test data that can be deleted
+- `reports/` - Generated reports, analysis outputs
+
+**Create a .gitignore file:**
+
+```bash
+cat > .gitignore << 'EOF'
+# AutoCoder operational files (not part of the app)
+.autocoder/
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Environment and secrets
+.env
+.env.local
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+EOF
+```
+
+---
+
+## PROJECT ORGANIZATION RULES
+
+**CRITICAL:** Keep the project root clean. Only source code and essential config files belong in root.
+
+**Project structure:**
+```
+project-root/
+├── backend/           # Backend source code only
+├── frontend/          # Frontend source code only  
+├── prompts/           # App spec (user-editable)
+├── .autocoder/        # ALL operational files (auto-created)
+│   ├── logs/          # Progress logs, session summaries
+│   ├── tests/         # Test scripts, verification files
+│   ├── temp/          # Temporary files, test data
+│   └── reports/       # Generated reports
+├── init.sh            # Startup script (OK in root)
+├── README.md          # Documentation (OK in root)
+├── .gitignore         # Git ignore file (OK in root)
+└── package.json       # Config files (OK in root)
+```
+
+**File placement rules:**
+
+| File Type | Location | Examples |
+|-----------|----------|----------|
+| Source code | `frontend/`, `backend/` | Components, APIs, models |
+| Config files | Root | `package.json`, `tsconfig.json`, `.env` |
+| Progress/logs | `.autocoder/logs/` | `*-progress.txt`, `SESSION*.txt` |
+| Test scripts | `.autocoder/tests/` | `test-*.js`, `verify-*.js`, `check-*.js` |
+| Temp files | `.autocoder/temp/` | `create-*.js`, test data files |
+| Reports | `.autocoder/reports/` | `verification-*.md`, analysis outputs |
+
+**NEVER create these in project root:**
+- ❌ `*-progress.txt`, `*-summary.txt` → Use `.autocoder/logs/`
+- ❌ `test-*.js`, `verify-*.js`, `check-*.js` → Use `.autocoder/tests/`
+- ❌ `create-*.js`, `cleanup-*.js` → Use `.autocoder/temp/`
+- ❌ `*_session*.txt`, `SESSION*.txt` → Use `.autocoder/logs/`
+
+**Exception:** `claude-progress.txt` stays in root for quick agent context.
+
+---
+
 ### OPTIONAL: Start Implementation
 
 If you have time remaining in this session, you may begin implementing

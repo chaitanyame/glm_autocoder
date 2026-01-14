@@ -15,6 +15,28 @@ from sqlalchemy.types import JSON
 
 Base = declarative_base()
 
+# Name of the operational folder for AutoCoder files
+AUTOCODER_DIR_NAME = ".autocoder"
+
+
+def get_autocoder_dir(project_dir: Path) -> Path:
+    """
+    Get or create the .autocoder operational directory.
+    
+    This directory contains all AutoCoder operational files:
+    - features.db (feature database)
+    - .agent.lock (agent lock file)
+    - logs/ (session logs, progress files)
+    - tests/ (test scripts, verification files)
+    - temp/ (temporary files, test data)
+    - reports/ (generated reports)
+    
+    Keeping these in a dedicated folder keeps the project root clean.
+    """
+    autocoder_dir = project_dir / AUTOCODER_DIR_NAME
+    autocoder_dir.mkdir(parents=True, exist_ok=True)
+    return autocoder_dir
+
 
 class Feature(Base):
     """Feature model representing a test case/feature to implement."""
@@ -45,8 +67,46 @@ class Feature(Base):
 
 
 def get_database_path(project_dir: Path) -> Path:
-    """Return the path to the SQLite database for a project."""
-    return project_dir / "features.db"
+    """
+    Return the path to the SQLite database for a project.
+    
+    The database is stored in .autocoder/ to keep the project root clean.
+    For backward compatibility, if features.db exists in the root, it will
+    be migrated to .autocoder/ on first access.
+    """
+    autocoder_dir = get_autocoder_dir(project_dir)
+    new_db_path = autocoder_dir / "features.db"
+    legacy_db_path = project_dir / "features.db"
+    
+    # Migrate legacy database if it exists and new location doesn't
+    if legacy_db_path.exists() and not new_db_path.exists():
+        import shutil
+        shutil.move(str(legacy_db_path), str(new_db_path))
+    
+    return new_db_path
+
+
+def get_lock_file_path(project_dir: Path) -> Path:
+    """
+    Return the path to the agent lock file.
+    
+    The lock file is stored in .autocoder/ to keep the project root clean.
+    For backward compatibility, if .agent.lock exists in the root, it will
+    be migrated to .autocoder/ on first access.
+    """
+    autocoder_dir = get_autocoder_dir(project_dir)
+    new_lock_path = autocoder_dir / ".agent.lock"
+    legacy_lock_path = project_dir / ".agent.lock"
+    
+    # Migrate legacy lock file if it exists and new location doesn't
+    if legacy_lock_path.exists() and not new_lock_path.exists():
+        import shutil
+        shutil.move(str(legacy_lock_path), str(new_lock_path))
+    elif legacy_lock_path.exists() and new_lock_path.exists():
+        # Both exist - remove the legacy one
+        legacy_lock_path.unlink()
+    
+    return new_lock_path
 
 
 def get_database_url(project_dir: Path) -> str:
