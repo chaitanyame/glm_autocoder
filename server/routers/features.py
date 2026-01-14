@@ -10,13 +10,14 @@ import re
 from contextlib import contextmanager
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from ..schemas import (
     FeatureCreate,
     FeatureListResponse,
     FeatureResponse,
 )
+from ..websocket import manager
 
 # Lazy imports to avoid circular dependencies
 _create_database = None
@@ -62,6 +63,25 @@ def _get_database_path_helper(project_dir: Path) -> Path:
 
 
 router = APIRouter(prefix="/api/projects/{project_name}/features", tags=["features"])
+
+
+@router.post("/notify")
+async def notify_feature_update(project_name: str, background_tasks: BackgroundTasks):
+    """
+    Notify clients of feature updates via WebSocket.
+    Called by MCP server after any feature operation.
+    """
+    project_name_clean = project_name.strip()
+    if not re.match(r'^[a-zA-Z0-9_-]{1,50}$', project_name_clean):
+        raise HTTPException(status_code=400, detail="Invalid project name")
+    
+    # Broadcast feature update to all connected clients
+    await manager.broadcast_to_project(project_name_clean, {
+        "type": "feature_update",
+        "project": project_name_clean,
+    })
+    
+    return {"status": "notified"}
 
 
 def validate_project_name(name: str) -> str:

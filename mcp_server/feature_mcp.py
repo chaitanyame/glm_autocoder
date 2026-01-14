@@ -38,6 +38,27 @@ from api.migration import migrate_json_to_sqlite
 PROJECT_DIR = Path(os.environ.get("PROJECT_DIR", ".")).resolve()
 
 
+def _notify_feature_update():
+    """
+    Notify the FastAPI server that features have changed.
+    This triggers a WebSocket broadcast to all connected clients.
+    """
+    import urllib.request
+    import urllib.error
+    
+    project_name = PROJECT_DIR.name
+    try:
+        # Call local FastAPI endpoint to broadcast feature update
+        url = f"http://localhost:8888/api/projects/{project_name}/features/notify"
+        req = urllib.request.Request(url, method="POST", data=b"")
+        req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=2) as response:
+            pass  # We don't need the response
+    except (urllib.error.URLError, Exception):
+        # Server might not be running (CLI mode), ignore errors
+        pass
+
+
 # Pydantic models for input validation
 class MarkPassingInput(BaseModel):
     """Input for marking a feature as passing."""
@@ -230,6 +251,9 @@ def feature_mark_passing(
         session.commit()
         session.refresh(feature)
 
+        # Notify UI of feature update
+        _notify_feature_update()
+
         return json.dumps(feature.to_dict(), indent=2)
     finally:
         session.close()
@@ -277,6 +301,9 @@ def feature_skip(
         session.commit()
         session.refresh(feature)
 
+        # Notify UI of feature update
+        _notify_feature_update()
+
         return json.dumps({
             "id": feature.id,
             "name": feature.name,
@@ -320,6 +347,9 @@ def feature_mark_in_progress(
         session.commit()
         session.refresh(feature)
 
+        # Notify UI of feature update
+        _notify_feature_update()
+
         return json.dumps(feature.to_dict(), indent=2)
     finally:
         session.close()
@@ -350,6 +380,9 @@ def feature_clear_in_progress(
         feature.in_progress = False
         session.commit()
         session.refresh(feature)
+
+        # Notify UI of feature update
+        _notify_feature_update()
 
         return json.dumps(feature.to_dict(), indent=2)
     finally:
@@ -404,6 +437,9 @@ def feature_create_bulk(
             created_count += 1
 
         session.commit()
+
+        # Notify UI of feature update
+        _notify_feature_update()
 
         return json.dumps({"created": created_count}, indent=2)
     except Exception as e:

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useProjects, useFeatures, useAgentStatus } from './hooks/useProjects'
 import { useProjectWebSocket } from './hooks/useWebSocket'
 import { useFeatureSound } from './hooks/useFeatureSound'
@@ -37,10 +38,19 @@ function App() {
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  const queryClient = useQueryClient()
   const { data: projects, isLoading: projectsLoading } = useProjects()
   const { data: features } = useFeatures(selectedProject)
   const { data: agentStatusData } = useAgentStatus(selectedProject)
-  const wsState = useProjectWebSocket(selectedProject)
+  
+  // Callback to invalidate features cache when WebSocket receives feature_update
+  const handleFeatureUpdate = useCallback(() => {
+    if (selectedProject) {
+      queryClient.invalidateQueries({ queryKey: ['features', selectedProject] })
+    }
+  }, [queryClient, selectedProject])
+  
+  const wsState = useProjectWebSocket(selectedProject, handleFeatureUpdate)
 
   // Play sounds when features move between columns
   useFeatureSound(features)

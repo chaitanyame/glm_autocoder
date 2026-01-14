@@ -19,13 +19,17 @@ interface WebSocketState {
 
 const MAX_LOGS = 100 // Keep last 100 log lines
 
-export function useProjectWebSocket(projectName: string | null) {
+export function useProjectWebSocket(projectName: string | null, onFeatureUpdate?: () => void) {
   const [state, setState] = useState<WebSocketState>({
     progress: { passing: 0, in_progress: 0, total: 0, percentage: 0 },
     agentStatus: 'stopped',
     logs: [],
     isConnected: false,
   })
+  
+  // Store callback in ref to avoid reconnection on callback change
+  const onFeatureUpdateRef = useRef(onFeatureUpdate)
+  onFeatureUpdateRef.current = onFeatureUpdate
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<number | null>(null)
@@ -83,7 +87,10 @@ export function useProjectWebSocket(projectName: string | null) {
               break
 
             case 'feature_update':
-              // Feature updates will trigger a refetch via React Query
+              // Trigger React Query refetch via callback
+              if (onFeatureUpdateRef.current) {
+                onFeatureUpdateRef.current()
+              }
               break
 
             case 'pong':
