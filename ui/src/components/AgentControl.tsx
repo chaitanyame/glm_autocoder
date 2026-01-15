@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, Pause, Square, Loader2, Zap, Clock, XCircle } from 'lucide-react'
+import { Play, Pause, Square, Loader2, Zap, Clock, XCircle, CheckCircle, RotateCcw } from 'lucide-react'
 import {
   useStartAgent,
   useStopAgent,
@@ -103,6 +103,28 @@ export function AgentControl({ projectName, status, yoloMode = false, isConnecte
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <Play size={18} />
+              )}
+            </button>
+          </>
+        ) : status === 'completed' ? (
+          <>
+            {/* Completed - show restart button with confirmation icon */}
+            <div className="flex items-center gap-1 px-2 py-1 bg-[var(--color-neo-done)] border-3 border-[var(--color-neo-border)]">
+              <CheckCircle size={14} className="text-green-900" />
+              <span className="font-display font-bold text-xs uppercase text-green-900">
+                All Done!
+              </span>
+            </div>
+            <button
+              onClick={handleStart}
+              disabled={isLoading || !canStartOrResume}
+              className="neo-btn neo-btn-secondary text-sm py-2 px-3"
+              title={!canStartOrResume ? disabledReason : "Restart Agent (run again)"}
+            >
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <RotateCcw size={18} />
               )}
             </button>
           </>
@@ -230,6 +252,11 @@ function StatusIndicator({ status }: { status: AgentStatus }) {
       color: 'var(--color-neo-danger)',
       label: 'Rate Limited',
       pulse: true,
+    },
+    completed: {
+      color: 'var(--color-neo-done)',
+      label: '🎉 Completed',
+      pulse: false,
     },
   }
 

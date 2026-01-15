@@ -183,7 +183,11 @@ def feature_get_next() -> str:
         )
 
         if feature is None:
-            return json.dumps({"error": "All features are passing! No more work to do."})
+            return json.dumps({
+                "status": "ALL_COMPLETE",
+                "message": "All features are passing! No more work to do.",
+                "error": "All features are passing! No more work to do."  # Keep for backwards compatibility
+            })
 
         return json.dumps(feature.to_dict(), indent=2)
     finally:

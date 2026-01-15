@@ -80,7 +80,7 @@ class AgentProcessManager:
         self.project_dir = project_dir
         self.root_dir = root_dir
         self.process: subprocess.Popen | None = None
-        self._status: Literal["stopped", "running", "paused", "crashed", "rate_limited"] = "stopped"
+        self._status: Literal["stopped", "running", "paused", "crashed", "rate_limited", "completed"] = "stopped"
         self.started_at: datetime | None = None
         self._output_task: asyncio.Task | None = None
         self.yolo_mode: bool = False  # YOLO mode for rapid prototyping
@@ -94,11 +94,11 @@ class AgentProcessManager:
         self.lock_file = get_lock_file_path(self.project_dir)
 
     @property
-    def status(self) -> Literal["stopped", "running", "paused", "crashed", "rate_limited"]:
+    def status(self) -> Literal["stopped", "running", "paused", "crashed", "rate_limited", "completed"]:
         return self._status
 
     @status.setter
-    def status(self, value: Literal["stopped", "running", "paused", "crashed", "rate_limited"]):
+    def status(self, value: Literal["stopped", "running", "paused", "crashed", "rate_limited", "completed"]):
         old_status = self._status
         self._status = value
         if old_status != value:
@@ -196,6 +196,7 @@ class AgentProcessManager:
             return
 
         rate_limit_reset_time: str | None = None
+        completion_detected: bool = False
 
         try:
             loop = asyncio.get_running_loop()
@@ -215,6 +216,11 @@ class AgentProcessManager:
                     # Extract reset time from marker
                     rate_limit_reset_time = decoded.split(":", 1)[1].strip() or None
                     logger.info(f"Detected rate limit marker, reset time: {rate_limit_reset_time}")
+                
+                # Check for COMPLETED marker from agent.py
+                if decoded.startswith("COMPLETED:"):
+                    completion_detected = True
+                    logger.info("Detected completion marker - all features done")
 
                 await self._broadcast_output(sanitized)
 
@@ -236,6 +242,10 @@ class AgentProcessManager:
                     # Schedule auto-resume in background
                     asyncio.create_task(state.schedule_auto_resume())
                     logger.info(f"Agent rate limited, auto-resume scheduled")
+                elif completion_detected and exit_code == 0:
+                    # All features completed successfully
+                    self.status = "completed"
+                    logger.info(f"Agent completed all features successfully")
                 elif exit_code != 0 and self.status == "running":
                     self.status = "crashed"
                 elif self.status == "running":

@@ -84,7 +84,7 @@ export interface FeatureCreate {
 }
 
 // Agent types
-export type AgentStatus = 'stopped' | 'running' | 'paused' | 'crashed' | 'rate_limited'
+export type AgentStatus = 'stopped' | 'running' | 'paused' | 'crashed' | 'rate_limited' | 'completed'
 
 export interface AgentStatusResponse {
   status: AgentStatus

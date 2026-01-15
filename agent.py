@@ -16,6 +16,8 @@ from claude_agent_sdk import ClaudeSDKClient
 
 # Exit code for rate limiting - signals process_manager to schedule auto-resume
 EXIT_CODE_RATE_LIMITED = 42
+# Exit code for successful completion - all features done
+EXIT_CODE_COMPLETED = 0
 
 # Fix Windows console encoding for Unicode characters (emoji, etc.)
 # Without this, print() crashes when Claude outputs emoji like ✅
@@ -194,6 +196,8 @@ async def run_autonomous_agent(
 
     # Main loop
     iteration = 0
+    consecutive_completion_count = 0  # Track "all done" responses for graceful exit
+    MAX_COMPLETION_RESPONSES = 2  # Exit after seeing completion this many times
 
     while True:
         iteration += 1
@@ -228,6 +232,23 @@ async def run_autonomous_agent(
 
         # Handle status
         if status == "continue":
+            # Check if agent response indicates all features complete
+            if "All features are passing" in response or "No more work to do" in response:
+                consecutive_completion_count += 1
+                print(f"\n[Completion detected: {consecutive_completion_count}/{MAX_COMPLETION_RESPONSES}]")
+                
+                if consecutive_completion_count >= MAX_COMPLETION_RESPONSES:
+                    print("\n" + "=" * 70)
+                    print("  🎉 ALL FEATURES COMPLETED!")
+                    print("=" * 70)
+                    print("\nThe agent has successfully implemented all features.")
+                    print_progress_summary(project_dir)
+                    # Print marker for process_manager to detect
+                    print(f"\nCOMPLETED:success", flush=True)
+                    sys.exit(EXIT_CODE_COMPLETED)
+            else:
+                consecutive_completion_count = 0  # Reset if doing other work
+            
             print(f"\nAgent will auto-continue in {AUTO_CONTINUE_DELAY_SECONDS}s...")
             print_progress_summary(project_dir)
             await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
