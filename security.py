@@ -59,6 +59,51 @@ ALLOWED_COMMANDS = {
 COMMANDS_NEEDING_EXTRA_VALIDATION = {"pkill", "chmod", "init.sh"}
 
 
+def validate_command(command_string: str, project_dir: str | None = None) -> tuple[bool, str]:
+    """
+    Validate a shell command against the allowlist and extra validations.
+
+    Args:
+        command_string: The full shell command
+        project_dir: Optional project directory (reserved for future path checks)
+
+    Returns:
+        Tuple of (is_allowed, reason_if_blocked)
+    """
+    if not command_string or not command_string.strip():
+        return False, "Empty command"
+
+    # Extract all commands from the command string
+    commands = extract_commands(command_string)
+    if not commands:
+        return False, "Could not parse command"
+
+    # Split into segments for per-command validation
+    segments = split_command_segments(command_string)
+
+    for cmd in commands:
+        if cmd not in ALLOWED_COMMANDS:
+            return False, f"Command '{cmd}' is not allowed"
+
+        if cmd in COMMANDS_NEEDING_EXTRA_VALIDATION:
+            cmd_segment = get_command_for_validation(cmd, segments) or command_string
+
+            if cmd == "pkill":
+                allowed, reason = validate_pkill_command(cmd_segment)
+                if not allowed:
+                    return False, reason
+            elif cmd == "chmod":
+                allowed, reason = validate_chmod_command(cmd_segment)
+                if not allowed:
+                    return False, reason
+            elif cmd == "init.sh":
+                allowed, reason = validate_init_script(cmd_segment)
+                if not allowed:
+                    return False, reason
+
+    return True, ""
+
+
 def split_command_segments(command_string: str) -> list[str]:
     """
     Split a compound command into individual command segments.

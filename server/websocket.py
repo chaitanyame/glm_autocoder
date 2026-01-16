@@ -261,3 +261,207 @@ async def project_websocket(websocket: WebSocket, project_name: str):
 
         # Disconnect from manager
         await manager.disconnect(websocket, project_name)
+
+
+# ============================================================================
+# Terminal WebSocket
+# ============================================================================
+
+async def terminal_websocket(websocket: WebSocket, project_name: str):
+    """
+    WebSocket endpoint for integrated terminal.
+    
+    Allows running commands in the project directory with security validation.
+    """
+    logger.info(f"Terminal WebSocket endpoint called for project: {project_name}")
+    
+    await websocket.accept()
+    
+    if not validate_project_name(project_name):
+        await websocket.send_json({"type": "error", "content": "Invalid project name"})
+        await websocket.close(code=4000, reason="Invalid project name")
+        return
+
+    project_dir = _get_project_path(project_name)
+    if not project_dir or not project_dir.exists():
+        await websocket.send_json({"type": "error", "content": "Project not found"})
+        await websocket.close(code=4004, reason="Project not found")
+        return
+    
+    # Import security module for command validation
+    import sys
+    root = Path(__file__).parent.parent
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+    try:
+        import security as security_module
+    except Exception as e:
+        logger.exception(f"Failed to import security module: {e}")
+        await websocket.send_json({
+            "type": "error",
+            "content": "Security module failed to load. Terminal is unavailable.\r\n",
+        })
+        await websocket.close(code=1011, reason="Security module error")
+        return
+
+    validate_command = getattr(security_module, "validate_command", None)
+    if validate_command is None:
+        legacy_validator = getattr(security_module, "validate_bash_command", None)
+        if legacy_validator is not None:
+            validate_command = legacy_validator
+            logger.warning("security.validate_command missing; using legacy validator")
+        else:
+            allowed_commands = getattr(
+                security_module,
+                "ALLOWED_COMMANDS",
+                {"ls", "pwd", "echo", "cat"},
+            )
+
+            def validate_command(command_string: str, project_dir: str | None = None) -> tuple[bool, str]:
+                import os
+                import shlex
+
+                try:
+                    tokens = shlex.split(command_string)
+                except ValueError:
+                    return False, "Could not parse command"
+
+                if not tokens:
+                    return False, "Empty command"
+
+                cmd = os.path.basename(tokens[0])
+                if cmd not in allowed_commands:
+                    return False, f"Command '{cmd}' is not allowed"
+
+                return True, ""
+
+            logger.warning("security.validate_command missing; using minimal allowlist validator")
+    
+    await websocket.send_json({"type": "connected"})
+    
+    current_process: asyncio.subprocess.Process | None = None
+    
+    async def read_stream(stream, stream_type: str):
+        """Read from a stream and send to WebSocket."""
+        try:
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                try:
+                    text = line.decode('utf-8', errors='replace')
+                    await websocket.send_json({
+                        "type": stream_type,
+                        "content": text,
+                    })
+                except Exception:
+                    break
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.debug(f"Stream read error: {e}")
+    
+    try:
+        while True:
+            try:
+                data = await websocket.receive_text()
+                message = json.loads(data)
+                
+                msg_type = message.get("type")
+                
+                if msg_type == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    
+                elif msg_type == "command":
+                    command = message.get("command", "").strip()
+                    
+                    if not command:
+                        await websocket.send_json({
+                            "type": "output",
+                            "content": "$ ",
+                        })
+                        continue
+                    
+                    # Validate command for security
+                    is_valid, error_msg = validate_command(command, str(project_dir))
+                    
+                    if not is_valid:
+                        await websocket.send_json({
+                            "type": "error",
+                            "content": f"Command not allowed: {error_msg}\r\n",
+                        })
+                        await websocket.send_json({
+                            "type": "output",
+                            "content": "$ ",
+                        })
+                        continue
+                    
+                    # Run the command
+                    try:
+                        current_process = await asyncio.create_subprocess_shell(
+                            command,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                            cwd=str(project_dir),
+                        )
+                        
+                        # Read stdout and stderr concurrently
+                        stdout_task = asyncio.create_task(
+                            read_stream(current_process.stdout, "output")
+                        )
+                        stderr_task = asyncio.create_task(
+                            read_stream(current_process.stderr, "error")
+                        )
+                        
+                        # Wait for process to complete
+                        await current_process.wait()
+                        
+                        # Wait for stream readers to finish
+                        await asyncio.gather(stdout_task, stderr_task, return_exceptions=True)
+                        
+                        # Send exit code
+                        await websocket.send_json({
+                            "type": "exit",
+                            "exitCode": current_process.returncode,
+                        })
+                        
+                    except Exception as e:
+                        await websocket.send_json({
+                            "type": "error",
+                            "content": f"Failed to run command: {e}\r\n",
+                        })
+                    finally:
+                        current_process = None
+                        await websocket.send_json({
+                            "type": "output",
+                            "content": "$ ",
+                        })
+                
+                elif msg_type == "signal":
+                    signal_name = message.get("signal", "SIGINT")
+                    if current_process and current_process.returncode is None:
+                        try:
+                            if signal_name == "SIGINT":
+                                current_process.terminate()
+                            else:
+                                current_process.kill()
+                        except Exception as e:
+                            logger.debug(f"Failed to send signal: {e}")
+                
+            except WebSocketDisconnect:
+                break
+            except json.JSONDecodeError:
+                logger.warning("Invalid JSON from terminal WebSocket")
+            except Exception as e:
+                logger.warning(f"Terminal WebSocket error: {e}")
+                break
+    
+    finally:
+        # Kill any running process
+        if current_process and current_process.returncode is None:
+            try:
+                current_process.kill()
+            except Exception:
+                pass
+        logger.info(f"Terminal WebSocket disconnected for project: {project_name}")

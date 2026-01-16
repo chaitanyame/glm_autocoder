@@ -21,13 +21,14 @@ from .routers import (
     assistant_chat_router,
     features_router,
     filesystem_router,
+    ideation_router,
     projects_router,
     spec_creation_router,
 )
 from .schemas import SetupStatus, ApiKeyRequest, ApiKeyResponse, SettingsResponse, SettingsUpdate, ModelOption
 from .services.assistant_chat_session import cleanup_all_sessions as cleanup_assistant_sessions
 from .services.process_manager import cleanup_all_managers
-from .websocket import project_websocket
+from .websocket import project_websocket, terminal_websocket
 
 # Paths
 ROOT_DIR = Path(__file__).parent.parent
@@ -148,6 +149,7 @@ app.include_router(agent_router)
 app.include_router(spec_creation_router)
 app.include_router(filesystem_router)
 app.include_router(assistant_chat_router)
+app.include_router(ideation_router)
 
 
 # ============================================================================
@@ -173,6 +175,12 @@ async def websocket_test(websocket: WebSocket):
 async def websocket_endpoint(websocket: WebSocket, project_name: str):
     """WebSocket endpoint for real-time project updates."""
     await project_websocket(websocket, project_name)
+
+
+@app.websocket("/ws/terminal/{project_name}")
+async def terminal_endpoint(websocket: WebSocket, project_name: str):
+    """WebSocket endpoint for integrated terminal."""
+    await terminal_websocket(websocket, project_name)
 
 
 # ============================================================================

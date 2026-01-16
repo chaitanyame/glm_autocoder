@@ -533,3 +533,115 @@ async def get_home_directory():
         "path": home.as_posix(),
         "display_path": str(home),
     }
+
+
+# =============================================================================
+# File Content Endpoints (for Spec Editor)
+# =============================================================================
+
+def _get_project_path(project_name: str) -> Path:
+    """Get project path from registry."""
+    root = Path(__file__).parent.parent.parent
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    
+    from registry import get_project_path
+    return get_project_path(project_name)
+
+
+@router.get("/file")
+async def read_file_content(
+    project: str = Query(..., description="Project name"),
+    path: str = Query(..., description="Relative path to file within project"),
+):
+    """
+    Read file content from a project directory.
+    
+    Used by the Spec Editor to load prompts/app_spec.txt.
+    """
+    # Validate project name
+    if not re.match(r'^[a-zA-Z0-9_-]{1,50}$', project):
+        raise HTTPException(status_code=400, detail="Invalid project name")
+    
+    # Validate path - prevent directory traversal
+    if '..' in path or path.startswith('/') or path.startswith('\\'):
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    
+    project_dir = _get_project_path(project)
+    if not project_dir or not project_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    file_path = project_dir / path
+    
+    # Ensure file is within project directory
+    try:
+        file_path = file_path.resolve()
+        project_dir_resolved = project_dir.resolve()
+        if not str(file_path).startswith(str(project_dir_resolved)):
+            raise HTTPException(status_code=403, detail="Access denied")
+    except (OSError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if not file_path.is_file():
+        raise HTTPException(status_code=400, detail="Path is not a file")
+    
+    try:
+        content = file_path.read_text(encoding='utf-8')
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(content)
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="File is not valid UTF-8 text")
+    except Exception as e:
+        logger.error(f"Failed to read file {file_path}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to read file: {e}")
+
+
+from pydantic import BaseModel
+
+class SaveFileRequest(BaseModel):
+    project: str
+    path: str
+    content: str
+
+
+@router.post("/file")
+async def save_file_content(request: SaveFileRequest):
+    """
+    Save file content to a project directory.
+    
+    Used by the Spec Editor to save prompts/app_spec.txt.
+    """
+    # Validate project name
+    if not re.match(r'^[a-zA-Z0-9_-]{1,50}$', request.project):
+        raise HTTPException(status_code=400, detail="Invalid project name")
+    
+    # Validate path - prevent directory traversal
+    if '..' in request.path or request.path.startswith('/') or request.path.startswith('\\'):
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    
+    project_dir = _get_project_path(request.project)
+    if not project_dir or not project_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    file_path = project_dir / request.path
+    
+    # Ensure file is within project directory
+    try:
+        # Create parent directories if they don't exist
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path_resolved = file_path.resolve()
+        project_dir_resolved = project_dir.resolve()
+        if not str(file_path_resolved).startswith(str(project_dir_resolved)):
+            raise HTTPException(status_code=403, detail="Access denied")
+    except (OSError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    try:
+        file_path.write_text(request.content, encoding='utf-8')
+        return {"success": True, "path": str(file_path)}
+    except Exception as e:
+        logger.error(f"Failed to save file {file_path}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")

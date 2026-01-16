@@ -21,6 +21,11 @@ import type {
   AssistantConversationDetail,
   ProjectSettings,
   ProjectSettingsUpdate,
+  Idea,
+  IdeaCategory,
+  IdeaCategoryInfo,
+  IdeationPrompt,
+  GenerateIdeasResponse,
 } from './types'
 
 const API_BASE = '/api'
@@ -337,4 +342,80 @@ export async function deleteAssistantConversation(
     `/assistant/conversations/${encodeURIComponent(projectName)}/${conversationId}`,
     { method: 'DELETE' }
   )
+}
+
+// ============================================================================
+// Ideation & Backlog API
+// ============================================================================
+
+export async function getIdeationCategories(): Promise<IdeaCategoryInfo[]> {
+  return fetchJSON('/ideation/categories')
+}
+
+export async function getIdeationPrompts(category: IdeaCategory): Promise<IdeationPrompt[]> {
+  return fetchJSON(`/ideation/prompts/${category}`)
+}
+
+export async function generateIdeas(
+  projectName: string,
+  category: IdeaCategory,
+  promptId: string,
+  count: number = 10
+): Promise<GenerateIdeasResponse> {
+  return fetchJSON(`/ideation/${encodeURIComponent(projectName)}/generate`, {
+    method: 'POST',
+    body: JSON.stringify({ category, prompt_id: promptId, count }),
+  })
+}
+
+export async function getIdeas(projectName: string): Promise<Idea[]> {
+  return fetchJSON(`/ideation/${encodeURIComponent(projectName)}/ideas`)
+}
+
+export async function createIdea(
+  projectName: string,
+  idea: Omit<Idea, 'id' | 'createdAt' | 'promoted'>
+): Promise<Idea> {
+  return fetchJSON(`/ideation/${encodeURIComponent(projectName)}/ideas`, {
+    method: 'POST',
+    body: JSON.stringify(idea),
+  })
+}
+
+export async function deleteIdea(projectName: string, ideaId: string): Promise<void> {
+  await fetchJSON(`/ideation/${encodeURIComponent(projectName)}/ideas/${ideaId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function promoteIdea(projectName: string, ideaId: string): Promise<Feature> {
+  return fetchJSON(`/ideation/${encodeURIComponent(projectName)}/ideas/${ideaId}/promote`, {
+    method: 'POST',
+  })
+}
+
+// ============================================================================
+// File Content API (for Spec Editor)
+// ============================================================================
+
+export async function loadFile(projectName: string, relativePath: string): Promise<string> {
+  const response = await fetch(
+    `${API_BASE}/filesystem/file?project=${encodeURIComponent(projectName)}&path=${encodeURIComponent(relativePath)}`
+  )
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
+    throw new Error(error.detail || `HTTP ${response.status}`)
+  }
+  return response.text()
+}
+
+export async function saveFile(
+  projectName: string,
+  relativePath: string,
+  content: string
+): Promise<void> {
+  await fetchJSON('/filesystem/file', {
+    method: 'POST',
+    body: JSON.stringify({ project: projectName, path: relativePath, content }),
+  })
 }

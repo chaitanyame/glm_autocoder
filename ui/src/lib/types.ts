@@ -342,3 +342,71 @@ export type AssistantChatServerMessage =
   | AssistantChatErrorMessage
   | AssistantChatConversationCreatedMessage
   | AssistantChatPongMessage
+
+// ============================================================================
+// Ideation & Backlog Types
+// ============================================================================
+
+export type IdeaCategory = 
+  | 'feature' 
+  | 'ux-ui' 
+  | 'dx' 
+  | 'growth' 
+  | 'technical' 
+  | 'security' 
+  | 'performance' 
+  | 'accessibility' 
+  | 'analytics'
+
+export type IdeaPriority = 'high' | 'medium' | 'low'
+
+export interface Idea {
+  id: string
+  category: IdeaCategory
+  title: string
+  description: string
+  rationale: string
+  priority: IdeaPriority
+  createdAt: string
+  promoted?: boolean
+}
+
+export interface IdeationPrompt {
+  id: string
+  category: IdeaCategory
+  title: string
+  description: string
+}
+
+export interface IdeaCategoryInfo {
+  id: IdeaCategory
+  name: string
+  icon: string
+  description: string
+}
+
+export interface GenerateIdeasRequest {
+  category: IdeaCategory
+  promptId: string
+  count?: number
+}
+
+export interface GenerateIdeasResponse {
+  success: boolean
+  ideas: Idea[]
+}
+
+// ============================================================================
+// Terminal Types
+// ============================================================================
+
+export interface TerminalMessage {
+  type: 'output' | 'error' | 'exit' | 'connected' | 'pong'
+  content?: string
+  exitCode?: number
+}
+
+export interface TerminalCommandMessage {
+  type: 'command'
+  command: string
+}

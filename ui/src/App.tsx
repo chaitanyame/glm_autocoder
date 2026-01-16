@@ -16,10 +16,14 @@ import { AddFeatureForm } from './components/AddFeatureForm'
 import { FeatureModal } from './components/FeatureModal'
 import { DebugLogViewer } from './components/DebugLogViewer'
 import { AgentThought } from './components/AgentThought'
-import { AssistantFAB } from './components/AssistantFAB'
-import { AssistantPanel } from './components/AssistantPanel'
+import { AssistantChat } from './components/AssistantChat'
 import { SettingsModal } from './components/SettingsModal'
-import { Plus, Loader2, Settings, Moon, Sun, Menu, X } from 'lucide-react'
+import { Sidebar, type SidebarPanel } from './components/Sidebar'
+import { IdeationPanel } from './components/IdeationPanel'
+import { BacklogPanel } from './components/BacklogPanel'
+import { SpecEditorPanel } from './components/SpecEditorPanel'
+import { TerminalPanel } from './components/TerminalPanel'
+import { Plus, Loader2, Settings, Moon, Sun, Menu, X, Bot } from 'lucide-react'
 import type { Feature } from './lib/types'
 
 function App() {
@@ -38,9 +42,9 @@ function App() {
   const [setupComplete, setSetupComplete] = useState(true) // Start optimistic
   const [debugOpen, setDebugOpen] = useState(false)
   const [debugPanelHeight, setDebugPanelHeight] = useState(288) // Default height
-  const [assistantOpen, setAssistantOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [activeSidebarPanel, setActiveSidebarPanel] = useState<SidebarPanel>('board')
 
   const queryClient = useQueryClient()
   const { data: projects, isLoading: projectsLoading } = useProjects()
@@ -65,6 +69,7 @@ function App() {
   // Persist selected project to localStorage
   const handleSelectProject = useCallback((project: string | null) => {
     setSelectedProject(project)
+    setActiveSidebarPanel(project ? 'board' : null)
     try {
       if (project) {
         localStorage.setItem(STORAGE_KEY, project)
@@ -103,28 +108,61 @@ function App() {
         setShowAddFeature(true)
       }
 
-      // A : Toggle assistant panel (when project selected)
-      if ((e.key === 'a' || e.key === 'A') && selectedProject) {
-        e.preventDefault()
-        setAssistantOpen(prev => !prev)
-      }
-
       // S : Toggle settings modal
       if (e.key === 's' || e.key === 'S') {
         e.preventDefault()
         setSettingsOpen(prev => !prev)
       }
 
+      // Sidebar panel shortcuts (when project selected)
+      if (selectedProject) {
+        // M : Board view
+        if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault()
+          setActiveSidebarPanel('board')
+        }
+
+        // I : Ideation panel
+        if (e.key === 'i' || e.key === 'I') {
+          e.preventDefault()
+          setActiveSidebarPanel(prev => prev === 'ideation' ? 'board' : 'ideation')
+        }
+        
+        // B : Backlog panel
+        if (e.key === 'b' || e.key === 'B') {
+          e.preventDefault()
+          setActiveSidebarPanel(prev => prev === 'backlog' ? 'board' : 'backlog')
+        }
+        
+        // E : Spec Editor panel
+        if (e.key === 'e' || e.key === 'E') {
+          e.preventDefault()
+          setActiveSidebarPanel(prev => prev === 'spec-editor' ? 'board' : 'spec-editor')
+        }
+        
+        // T : Terminal panel
+        if (e.key === 't' || e.key === 'T') {
+          e.preventDefault()
+          setActiveSidebarPanel(prev => prev === 'terminal' ? 'board' : 'terminal')
+        }
+
+        // A : Assistant panel
+        if (e.key === 'a' || e.key === 'A') {
+          e.preventDefault()
+          setActiveSidebarPanel(prev => prev === 'assistant' ? 'board' : 'assistant')
+        }
+      }
+
       // Escape : Close modals
       if (e.key === 'Escape') {
         if (settingsOpen) {
           setSettingsOpen(false)
-        } else if (assistantOpen) {
-          setAssistantOpen(false)
         } else if (showAddFeature) {
           setShowAddFeature(false)
         } else if (selectedFeature) {
           setSelectedFeature(null)
+        } else if (activeSidebarPanel && activeSidebarPanel !== 'board') {
+          setActiveSidebarPanel('board')
         } else if (debugOpen) {
           setDebugOpen(false)
         }
@@ -133,7 +171,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedProject, showAddFeature, selectedFeature, debugOpen, assistantOpen, settingsOpen])
+  }, [selectedProject, showAddFeature, selectedFeature, debugOpen, settingsOpen, activeSidebarPanel])
 
   // Combine WebSocket progress with feature data
   const progress = wsState.progress.total > 0 ? wsState.progress : {
@@ -148,6 +186,45 @@ function App() {
 
   if (!setupComplete) {
     return <SetupWizard onComplete={() => setSetupComplete(true)} />
+  }
+
+  const renderMainPanel = () => {
+    switch (activeSidebarPanel) {
+      case 'ideation':
+        return <IdeationPanel projectName={selectedProject ?? ''} />
+      case 'backlog':
+        return <BacklogPanel projectName={selectedProject ?? ''} />
+      case 'spec-editor':
+        return <SpecEditorPanel projectName={selectedProject ?? ''} />
+      case 'terminal':
+        return <TerminalPanel projectName={selectedProject ?? ''} />
+      case 'assistant':
+        return (
+          <div className="flex flex-col h-full min-h-[520px]">
+            <div className="flex items-center justify-between px-4 py-3 border-b-3 border-[var(--color-neo-border)] bg-[var(--color-neo-progress)]">
+              <div className="flex items-center gap-2">
+                <div className="bg-white border-2 border-[var(--color-neo-border)] p-1.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                  <Bot size={18} />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-white">Project Assistant</h2>
+                  <p className="text-xs text-white/80 font-mono">{selectedProject}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <AssistantChat projectName={selectedProject ?? ''} />
+            </div>
+          </div>
+        )
+      default:
+        return (
+          <KanbanBoard
+            features={features}
+            onFeatureClick={setSelectedFeature}
+          />
+        )
+    }
   }
 
   return (
@@ -292,10 +369,23 @@ function App() {
         </div>
       </header>
 
+      {/* Sidebar */}
+      {selectedProject && (
+        <Sidebar
+          isOpen={true}
+          activePanel={activeSidebarPanel}
+          onToggle={() => undefined}
+          onPanelChange={setActiveSidebarPanel}
+        />
+      )}
+
       {/* Main Content */}
       <main
-        className="max-w-7xl mx-auto px-4 py-8"
-        style={{ paddingBottom: debugOpen ? debugPanelHeight + 32 : undefined }}
+        className="w-full px-6 py-8 transition-all duration-300"
+        style={{ 
+          paddingBottom: debugOpen ? debugPanelHeight + 32 : undefined,
+          marginLeft: selectedProject ? '224px' : undefined,
+        }}
       >
         {!selectedProject ? (
           <div className="neo-empty-state mt-12">
@@ -308,44 +398,51 @@ function App() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Progress Dashboard */}
-            <ProgressDashboard
-              passing={progress.passing}
-              total={progress.total}
-              percentage={progress.percentage}
-              isConnected={wsState.isConnected}
-              hostPath={projects?.find(p => p.name === selectedProject)?.host_path}
-              projectName={selectedProject}
-            />
+            {(activeSidebarPanel === 'board' || !activeSidebarPanel) && (
+              <>
+                {/* Progress Dashboard */}
+                <ProgressDashboard
+                  passing={progress.passing}
+                  total={progress.total}
+                  percentage={progress.percentage}
+                  isConnected={wsState.isConnected}
+                  hostPath={projects?.find(p => p.name === selectedProject)?.host_path}
+                  projectName={selectedProject}
+                />
 
-            {/* Agent Thought - shows latest agent narrative */}
-            <AgentThought
-              logs={wsState.logs}
-              agentStatus={wsState.agentStatus}
-            />
+                {/* Agent Thought - shows latest agent narrative */}
+                <AgentThought
+                  logs={wsState.logs}
+                  agentStatus={wsState.agentStatus}
+                />
 
-            {/* Initializing Features State - show when agent is running but no features yet */}
-            {features &&
-             features.pending.length === 0 &&
-             features.in_progress.length === 0 &&
-             features.done.length === 0 &&
-             wsState.agentStatus === 'running' && (
-              <div className="neo-card p-8 text-center">
-                <Loader2 size={32} className="animate-spin mx-auto mb-4 text-[var(--color-neo-progress)]" />
-                <h3 className="font-display font-bold text-xl mb-2">
-                  Initializing Features...
-                </h3>
-                <p className="text-[var(--color-neo-text-secondary)]">
-                  The agent is reading your spec and creating features. This may take a moment.
-                </p>
-              </div>
+                {/* Initializing Features State - show when agent is running but no features yet */}
+                {features &&
+                 features.pending.length === 0 &&
+                 features.in_progress.length === 0 &&
+                 features.done.length === 0 &&
+                 wsState.agentStatus === 'running' && (
+                  <div className="neo-card p-8 text-center">
+                    <Loader2 size={32} className="animate-spin mx-auto mb-4 text-[var(--color-neo-progress)]" />
+                    <h3 className="font-display font-bold text-xl mb-2">
+                      Initializing Features...
+                    </h3>
+                    <p className="text-[var(--color-neo-text-secondary)]">
+                      The agent is reading your spec and creating features. This may take a moment.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Kanban Board */}
-            <KanbanBoard
-              features={features}
-              onFeatureClick={setSelectedFeature}
-            />
+            {/* Main panel content */}
+            {activeSidebarPanel === 'board' || !activeSidebarPanel ? (
+              renderMainPanel()
+            ) : (
+              <div className="neo-card p-0 overflow-hidden min-h-[520px]">
+                {renderMainPanel()}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -376,21 +473,6 @@ function App() {
           onClear={wsState.clearLogs}
           onHeightChange={setDebugPanelHeight}
         />
-      )}
-
-      {/* Assistant FAB and Panel */}
-      {selectedProject && (
-        <>
-          <AssistantFAB
-            onClick={() => setAssistantOpen(!assistantOpen)}
-            isOpen={assistantOpen}
-          />
-          <AssistantPanel
-            projectName={selectedProject}
-            isOpen={assistantOpen}
-            onClose={() => setAssistantOpen(false)}
-          />
-        </>
       )}
 
       {/* Settings Modal */}

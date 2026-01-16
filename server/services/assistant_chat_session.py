@@ -166,6 +166,24 @@ class AssistantChatSession:
         }
         if glm_api_key:
             env_settings["ANTHROPIC_AUTH_TOKEN"] = glm_api_key
+
+        # Use system Claude CLI
+        system_cli = shutil.which("claude")
+
+        # Preflight checks to avoid opaque process failures
+        if not system_cli:
+            yield {
+                "type": "error",
+                "content": "Assistant CLI not found. Install the Claude CLI and ensure it is on PATH.",
+            }
+            return
+
+        if not glm_api_key:
+            yield {
+                "type": "error",
+                "content": "Missing API key. Set ZAI_API_KEY (or ANTHROPIC_API_KEY) to enable the assistant.",
+            }
+            return
         
         # CRITICAL: Set environment variables in the current process
         # The Claude CLI inherits these from the parent process environment
@@ -200,9 +218,6 @@ class AssistantChatSession:
 
         # Get system prompt with project context
         system_prompt = get_system_prompt(self.project_name, self.project_dir)
-
-        # Use system Claude CLI
-        system_cli = shutil.which("claude")
 
         try:
             self.client = ClaudeSDKClient(
