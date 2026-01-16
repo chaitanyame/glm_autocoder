@@ -41,6 +41,7 @@ After UI changes: `cd ui && npm run build`
 | `server/services/rate_limit_state.py` | Persisted rate limit state (`~/.autocoder/rate_limit_state.json`) |
 | `server/services/assistant_chat_session.py` | Read-only assistant (cannot modify files) |
 | `server/services/spec_chat_session.py` | Interactive spec creation wizard |
+| `server/services/dev_server_manager.py` | Dev server lifecycle (start/stop/status/logs) |
 | `api/database.py` | SQLAlchemy `Feature` model, stored in `.autocoder/features.db` |
 
 ## Critical Conventions
@@ -61,8 +62,9 @@ class MyInput(BaseModel):
 
 # 2. Add tool function with @mcp.tool() decorator
 
-# 3. Add to client.py FEATURE_MCP_TOOLS list
+# 3. Add to client.py FEATURE_MCP_TOOLS or DEV_SERVER_TOOLS list
 FEATURE_MCP_TOOLS = [..., "mcp__features__my_new_tool"]
+DEV_SERVER_TOOLS = ["mcp__features__dev_server_start", ...]
 
 # 4. Add to permissions list in create_client()
 ```
@@ -79,7 +81,7 @@ Templates available: `initializer_prompt`, `coding_prompt`, `coding_prompt_yolo`
 
 ### WebSocket Events (`/ws/projects/{project_name}`)
 - `progress` - `{passing, total, percentage}`
-- `agent_status` - `running|paused|stopped|crashed|rate_limited`
+- `agent_status` - `running|paused|stopped|crashed|rate_limited|completed`
 - `log` - Agent stdout lines (streamed, sensitive data redacted)
 - `feature_update` - Triggers UI refresh
 
@@ -89,6 +91,7 @@ Neobrutalism design with Tailwind CSS v4. Theme tokens in `ui/src/styles/globals
 --color-neo-pending   /* yellow */
 --color-neo-progress  /* cyan */
 --color-neo-done      /* green */
+--color-neo-skipped   /* gray */
 ```
 
 ## Rate Limiting & Auto-Resume

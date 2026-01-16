@@ -67,12 +67,15 @@ export interface Feature {
   steps: string[]
   passes: boolean
   in_progress: boolean
+  skipped: boolean
+  skip_reason: string | null
 }
 
 export interface FeatureListResponse {
   pending: Feature[]
   in_progress: Feature[]
   done: Feature[]
+  skipped: Feature[]
 }
 
 export interface FeatureCreate {

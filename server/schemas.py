@@ -86,6 +86,8 @@ class FeatureResponse(FeatureBase):
     priority: int
     passes: bool
     in_progress: bool
+    skipped: bool = False
+    skip_reason: str | None = None
 
     class Config:
         from_attributes = True
@@ -96,6 +98,7 @@ class FeatureListResponse(BaseModel):
     pending: list[FeatureResponse]
     in_progress: list[FeatureResponse]
     done: list[FeatureResponse]
+    skipped: list[FeatureResponse] = []
 
 
 # ============================================================================

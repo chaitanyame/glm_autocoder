@@ -1,5 +1,5 @@
 <!-- YOLO MODE PROMPT - Keep synchronized with coding_prompt.template.md -->
-<!-- Last synced: 2026-01-01 -->
+<!-- Last synced: 2026-01-16 -->
 
 ## YOLO MODE - Rapid Prototyping (Testing Disabled)
 
@@ -14,41 +14,62 @@ Use for rapid prototyping only - not for production-quality development.
 You are continuing work on a long-running autonomous development task.
 This is a FRESH context window - you have no memory of previous sessions.
 
-### STEP 1: GET YOUR BEARINGS (MANDATORY)
+### STEP 1: UNDERSTAND THE PROJECT (MANDATORY)
 
-Start by orienting yourself:
+Start by reading the project specification to understand what you're building:
 
 ```bash
-# 1. See your working directory
-pwd
+# Read the full project specification
+cat app_spec.txt
+```
 
-# 2. List files to understand project structure
+This is essential context for understanding the application requirements.
+
+### STEP 2: CHECK DATABASE & SYNC FEATURES (MANDATORY)
+
+After understanding the spec, check the database to see what features exist:
+
+```
+# Check database status and get existing features list
+Use the feature_check_status tool
+```
+
+The response contains:
+- `action`: What to do next (INITIALIZE, CONTINUE, or COMPLETE)
+- `existing_names`: List of all feature names already in the database
+- `total`, `passing`, `pending`: Progress statistics
+
+**Based on the action field:**
+
+| Action | What To Do |
+|--------|------------|
+| `INITIALIZE` | No features in database. Parse app_spec.txt and create ALL features with `feature_create_bulk` |
+| `CONTINUE` | Features exist. Compare spec vs `existing_names` - create any NEW features, then call `feature_get_next` |
+| `COMPLETE` | All features passing. Report success and stop working |
+
+**IMPORTANT for CONTINUE action:**
+1. Compare features from app_spec.txt against the `existing_names` array
+2. If you find features in the spec that are NOT in `existing_names`, create them with `feature_create_bulk`
+3. Then proceed to `feature_get_next` to continue implementation
+
+This ensures new features added to the spec are picked up, while avoiding duplicates.
+
+### STEP 3: ORIENT YOURSELF
+
+Get additional context about the project state:
+
+```bash
+# See project structure
 ls -la
 
-# 3. Read the project specification to understand what you're building
-cat app_spec.txt
-
-# 4. Read progress notes from previous sessions
+# Read progress notes from previous sessions  
 cat claude-progress.txt
 
-# 5. Check recent git history
-git log --oneline -20
+# Check recent git history
+git log --oneline -10
 ```
 
-Then use MCP tools to check feature status:
-
-```
-# 6. Get progress statistics (passing/total counts)
-Use the feature_get_stats tool
-
-# 7. Get the next feature to work on
-Use the feature_get_next tool
-```
-
-Understanding the `app_spec.txt` is critical - it contains the full requirements
-for the application you're building.
-
-### STEP 2: START SERVERS (IF NOT RUNNING)
+### STEP 4: START SERVERS (IF NOT RUNNING)
 
 If `init.sh` exists, run it:
 
@@ -102,7 +123,7 @@ If a feature requires building other functionality first, **build that functiona
 If you must skip (truly external blocker only):
 
 ```
-Use the feature_skip tool with feature_id={id}
+Use the feature_mark_skipped tool with feature_id={id} and reason="specific blocker"
 ```
 
 Document the SPECIFIC external blocker in `claude-progress.txt`. "Functionality not built" is NEVER a valid reason.
@@ -136,6 +157,51 @@ mypy .
 **If lint/type-check passes:** Proceed to mark the feature as passing.
 
 **If lint/type-check fails:** Fix the errors before proceeding.
+
+### STEP 5.5: SMART ERROR RECOVERY PROTOCOL
+
+When you encounter errors during implementation, follow this recovery protocol:
+
+#### Error Classification
+
+1. **Compilation/Syntax Errors** - Fix immediately, these block all progress
+2. **Lint/Type Errors** - Must fix before marking feature as passing
+3. **Runtime Errors** - Debug and fix before continuing
+4. **External Blockers** - Dependencies that are genuinely outside your control
+
+#### Recovery Steps
+
+**For Fixable Errors (1-3):**
+```
+1. Read the FULL error message carefully
+2. Identify the root cause (not just symptoms)
+3. Check related files that might be affected
+4. Make the fix
+5. Verify the fix resolved the issue
+6. Continue with feature implementation
+```
+
+**For Persistent Errors (3+ failed attempts):**
+```
+1. Document what you've tried in claude-progress.txt
+2. Consider if the approach needs to change fundamentally
+3. If truly blocked, use feature_mark_skipped with clear reason
+4. Move to next feature - don't waste unlimited retries on one issue
+```
+
+#### When to Skip vs Persist
+
+**PERSIST (keep trying):**
+- Error message gives clear guidance
+- You haven't tried the obvious fix yet
+- The fix is within your control (code you can edit)
+- Similar patterns exist elsewhere in codebase to reference
+
+**SKIP (move on):**
+- External service is down/unreachable
+- Missing credentials you cannot obtain
+- Dependency on another feature not yet implemented
+- Hardware/environment issue outside the application
 
 ### STEP 6: UPDATE FEATURE STATUS
 
@@ -211,11 +277,30 @@ feature_mark_in_progress with feature_id={id}
 # 4. Mark a feature as passing (after lint/type-check succeeds)
 feature_mark_passing with feature_id={id}
 
-# 5. Skip a feature (moves to end of queue) - ONLY when blocked by dependency
-feature_skip with feature_id={id}
+# 5. Mark a feature as skipped (blocked by external dependency)
+feature_mark_skipped with feature_id={id} and reason="specific blocker"
 
-# 6. Clear in-progress status (when abandoning a feature)
+# 6. Restore a skipped feature to pending status
+feature_unskip with feature_id={id}
+
+# 7. Clear in-progress status (when abandoning a feature)
 feature_clear_in_progress with feature_id={id}
+```
+
+### Dev Server Tools:
+
+```
+# Start the dev server for the project
+dev_server_start
+
+# Stop the running dev server
+dev_server_stop
+
+# Check if dev server is running and get its URL
+dev_server_status
+
+# Get recent dev server logs (useful for debugging)
+dev_server_logs with lines=50
 ```
 
 ### RULES:
@@ -223,6 +308,8 @@ feature_clear_in_progress with feature_id={id}
 - Do NOT try to fetch lists of all features
 - Do NOT query features by category
 - Do NOT list all pending features
+- Use `feature_mark_skipped` ONLY for genuine external blockers
+- Always provide a specific reason when skipping
 
 **You do NOT need to see all features.** The feature_get_next tool tells you exactly what to work on. Trust it.
 

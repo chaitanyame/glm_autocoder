@@ -18,13 +18,25 @@ from security import bash_security_hook
 
 # Feature MCP tools for feature/test management
 FEATURE_MCP_TOOLS = [
+    "mcp__features__feature_check_status",  # CALL THIS FIRST to check db state
     "mcp__features__feature_get_stats",
     "mcp__features__feature_get_next",
     "mcp__features__feature_get_for_regression",
     "mcp__features__feature_mark_in_progress",
     "mcp__features__feature_mark_passing",
     "mcp__features__feature_skip",
+    "mcp__features__feature_mark_skipped",  # Mark feature as skipped (blocked)
+    "mcp__features__feature_unskip",  # Restore skipped feature to pending
+    "mcp__features__feature_clear_in_progress",
     "mcp__features__feature_create_bulk",
+]
+
+# Dev Server MCP tools for managing development servers
+DEV_SERVER_TOOLS = [
+    "mcp__features__dev_server_start",
+    "mcp__features__dev_server_stop",
+    "mcp__features__dev_server_status",
+    "mcp__features__dev_server_logs",
 ]
 
 # Playwright MCP tools for browser automation
@@ -97,7 +109,7 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
     """
     # Build allowed tools list based on mode
     # In YOLO mode, exclude Playwright tools for faster prototyping
-    allowed_tools = [*BUILTIN_TOOLS, *FEATURE_MCP_TOOLS]
+    allowed_tools = [*BUILTIN_TOOLS, *FEATURE_MCP_TOOLS, *DEV_SERVER_TOOLS]
     if not yolo_mode:
         allowed_tools.extend(PLAYWRIGHT_TOOLS)
 
@@ -117,6 +129,8 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
         "WebSearch",
         # Allow Feature MCP tools for feature management
         *FEATURE_MCP_TOOLS,
+        # Allow Dev Server tools for starting/stopping dev servers
+        *DEV_SERVER_TOOLS,
     ]
     if not yolo_mode:
         # Allow Playwright MCP tools for browser automation (standard mode only)

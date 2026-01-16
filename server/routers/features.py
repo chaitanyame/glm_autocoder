@@ -120,6 +120,8 @@ def feature_to_response(f) -> FeatureResponse:
         steps=f.steps if isinstance(f.steps, list) else [],
         passes=f.passes,
         in_progress=f.in_progress,
+        skipped=getattr(f, 'skipped', False),
+        skip_reason=getattr(f, 'skip_reason', None),
     )
 
 
@@ -128,10 +130,11 @@ async def list_features(project_name: str):
     """
     List all features for a project organized by status.
 
-    Returns features in three lists:
-    - pending: passes=False, not currently being worked on
-    - in_progress: features currently being worked on (tracked via agent output)
+    Returns features in four lists:
+    - pending: passes=False, not skipped, not currently being worked on
+    - in_progress: features currently being worked on
     - done: passes=True
+    - skipped: features marked as skipped (blocked by external dependency)
     """
     project_name = validate_project_name(project_name)
     project_dir = _get_project_path(project_name)
@@ -144,7 +147,7 @@ async def list_features(project_name: str):
 
     db_file = _get_database_path_helper(project_dir)
     if not db_file.exists():
-        return FeatureListResponse(pending=[], in_progress=[], done=[])
+        return FeatureListResponse(pending=[], in_progress=[], done=[], skipped=[])
 
     _, Feature = _get_db_classes()
 
@@ -155,11 +158,14 @@ async def list_features(project_name: str):
             pending = []
             in_progress = []
             done = []
+            skipped = []
 
             for f in all_features:
                 feature_response = feature_to_response(f)
                 if f.passes:
                     done.append(feature_response)
+                elif getattr(f, 'skipped', False):
+                    skipped.append(feature_response)
                 elif f.in_progress:
                     in_progress.append(feature_response)
                 else:
@@ -169,6 +175,7 @@ async def list_features(project_name: str):
                 pending=pending,
                 in_progress=in_progress,
                 done=done,
+                skipped=skipped,
             )
     except HTTPException:
         raise

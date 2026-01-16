@@ -5,7 +5,7 @@ interface KanbanColumnProps {
   title: string
   count: number
   features: Feature[]
-  color: 'pending' | 'progress' | 'done'
+  color: 'pending' | 'progress' | 'done' | 'skipped'
   onFeatureClick: (feature: Feature) => void
 }
 
@@ -13,6 +13,7 @@ const colorMap = {
   pending: 'var(--color-neo-pending)',
   progress: 'var(--color-neo-progress)',
   done: 'var(--color-neo-done)',
+  skipped: 'var(--color-neo-skipped)',
 }
 
 export function KanbanColumn({

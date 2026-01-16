@@ -38,10 +38,13 @@ def has_features(project_dir: Path) -> bool:
     if json_file.exists():
         return True
 
-    # Check SQLite database
-    db_file = project_dir / "features.db"
+    # Check SQLite database (in .autocoder directory)
+    db_file = project_dir / ".autocoder" / "features.db"
     if not db_file.exists():
-        return False
+        # Also check legacy location in project root
+        db_file = project_dir / "features.db"
+        if not db_file.exists():
+            return False
 
     try:
         conn = sqlite3.connect(db_file)
@@ -65,9 +68,12 @@ def count_passing_tests(project_dir: Path) -> tuple[int, int, int]:
     Returns:
         (passing_count, in_progress_count, total_count)
     """
-    db_file = project_dir / "features.db"
+    # Check .autocoder location first, then legacy location
+    db_file = project_dir / ".autocoder" / "features.db"
     if not db_file.exists():
-        return 0, 0, 0
+        db_file = project_dir / "features.db"
+        if not db_file.exists():
+            return 0, 0, 0
 
     try:
         conn = sqlite3.connect(db_file)
@@ -99,9 +105,12 @@ def get_all_passing_features(project_dir: Path) -> list[dict]:
     Returns:
         List of dicts with id, category, name for each passing feature
     """
-    db_file = project_dir / "features.db"
+    # Check .autocoder location first, then legacy location
+    db_file = project_dir / ".autocoder" / "features.db"
     if not db_file.exists():
-        return []
+        db_file = project_dir / "features.db"
+        if not db_file.exists():
+            return []
 
     try:
         conn = sqlite3.connect(db_file)

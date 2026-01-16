@@ -85,6 +85,20 @@ export function FeatureModal({ feature, projectName, onClose }: FeatureModalProp
                   COMPLETE
                 </span>
               </>
+            ) : feature.skipped ? (
+              <>
+                <SkipForward size={24} className="text-[var(--color-neo-skipped)]" />
+                <span className="font-display font-bold text-[var(--color-neo-skipped)]">
+                  SKIPPED
+                </span>
+              </>
+            ) : feature.in_progress ? (
+              <>
+                <Loader2 size={24} className="text-[var(--color-neo-progress)] animate-spin" />
+                <span className="font-display font-bold text-[var(--color-neo-progress)]">
+                  IN PROGRESS
+                </span>
+              </>
             ) : (
               <>
                 <Circle size={24} className="text-[var(--color-neo-text-secondary)]" />
@@ -97,6 +111,21 @@ export function FeatureModal({ feature, projectName, onClose }: FeatureModalProp
               Priority: #{feature.priority}
             </span>
           </div>
+
+          {/* Skip Reason (if skipped) */}
+          {feature.skipped && feature.skip_reason && (
+            <div className="flex items-start gap-3 p-4 bg-[var(--color-neo-skipped)]/10 border-3 border-[var(--color-neo-skipped)]">
+              <AlertCircle size={20} className="text-[var(--color-neo-skipped)] mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-display font-bold text-[var(--color-neo-skipped)] block mb-1">
+                  Skip Reason
+                </span>
+                <span className="text-[var(--color-neo-text-secondary)]">
+                  {feature.skip_reason}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           <div>

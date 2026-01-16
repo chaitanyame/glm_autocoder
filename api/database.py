@@ -51,6 +51,8 @@ class Feature(Base):
     steps = Column(JSON, nullable=False)  # Stored as JSON array
     passes = Column(Boolean, default=False, index=True)
     in_progress = Column(Boolean, default=False, index=True)
+    skipped = Column(Boolean, default=False, index=True)
+    skip_reason = Column(Text, nullable=True)  # Reason for skipping
 
     def to_dict(self) -> dict:
         """Convert feature to dictionary for JSON serialization."""
@@ -63,6 +65,8 @@ class Feature(Base):
             "steps": self.steps,
             "passes": self.passes,
             "in_progress": self.in_progress,
+            "skipped": self.skipped,
+            "skip_reason": self.skip_reason,
         }
 
 
@@ -133,6 +137,24 @@ def _migrate_add_in_progress_column(engine) -> None:
             conn.commit()
 
 
+def _migrate_add_skipped_columns(engine) -> None:
+    """Add skipped and skip_reason columns to existing databases that don't have them."""
+    from sqlalchemy import text
+
+    with engine.connect() as conn:
+        # Check if columns exist
+        result = conn.execute(text("PRAGMA table_info(features)"))
+        columns = [row[1] for row in result.fetchall()]
+
+        if "skipped" not in columns:
+            conn.execute(text("ALTER TABLE features ADD COLUMN skipped BOOLEAN DEFAULT 0"))
+            conn.commit()
+        
+        if "skip_reason" not in columns:
+            conn.execute(text("ALTER TABLE features ADD COLUMN skip_reason TEXT"))
+            conn.commit()
+
+
 def create_database(project_dir: Path) -> tuple:
     """
     Create database and return engine + session maker.
@@ -147,8 +169,9 @@ def create_database(project_dir: Path) -> tuple:
     engine = create_engine(db_url, connect_args={"check_same_thread": False})
     Base.metadata.create_all(bind=engine)
 
-    # Migrate existing databases to add in_progress column
+    # Migrate existing databases to add new columns
     _migrate_add_in_progress_column(engine)
+    _migrate_add_skipped_columns(engine)
 
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     return engine, SessionLocal

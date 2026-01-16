@@ -25,6 +25,7 @@
   --color-status-progress: #00b4d8;
   --color-status-done: #70e000;
   --color-status-error: #ff5400;
+  --color-status-skipped: #9ca3af;
   
   --color-accent-primary: #ff006e;
   --color-accent-secondary: #8338ec;
@@ -36,6 +37,7 @@
   --color-neo-pending: var(--color-status-pending);
   --color-neo-progress: var(--color-status-progress);
   --color-neo-done: var(--color-status-done);
+  --color-neo-skipped: var(--color-status-skipped);
   --color-neo-accent: var(--color-accent-primary);
   --color-neo-danger: var(--color-status-error);
   --color-neo-border: var(--color-border-default);
@@ -99,6 +101,7 @@
     --color-status-progress: #00b4d8;
     --color-status-done: #70e000;
     --color-status-error: #ff5400;
+    --color-status-skipped: #9ca3af;
     
     --color-accent-primary: #ff006e;
     --color-accent-secondary: #8338ec;
@@ -110,6 +113,7 @@
     --color-neo-pending: var(--color-status-pending);
     --color-neo-progress: var(--color-status-progress);
     --color-neo-done: var(--color-status-done);
+    --color-neo-skipped: var(--color-status-skipped);
     --color-neo-accent: var(--color-accent-primary);
     --color-neo-danger: var(--color-status-error);
     --color-neo-border: var(--color-border-default);
@@ -148,6 +152,7 @@
     --color-status-progress: #38bdf8;
     --color-status-done: #4ade80;
     --color-status-error: #f87171;
+    --color-status-skipped: #6b7280;
     
     --color-accent-primary: #f472b6;
     --color-accent-secondary: #a78bfa;
