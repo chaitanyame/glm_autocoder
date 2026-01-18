@@ -86,10 +86,17 @@ async def recommend_skills(spec_content: str) -> list[dict]:
         await client.__aenter__()
         
         # Query for recommendations
+        await client.query("Analyze the specification and provide skill recommendations.")
+        
+        # Stream the response
         response_text = ""
-        async for chunk in client.query("Analyze the specification and provide skill recommendations."):
-            if chunk.get("type") == "text":
-                response_text += chunk.get("text", "")
+        async for msg in client.receive_response():
+            msg_type = type(msg).__name__
+            if msg_type == "AssistantMessage" and hasattr(msg, "content"):
+                for block in msg.content:
+                    block_type = type(block).__name__
+                    if block_type == "TextBlock" and hasattr(block, "text"):
+                        response_text += block.text
         
         # Parse JSON response
         # Remove markdown code blocks if present
@@ -205,13 +212,21 @@ async def generate_skill(
         # Enter context manager
         await client.__aenter__()
         
+        # Send query
+        await client.query("Generate the SKILL.md file.")
+        
         # Stream the skill content
         full_content = ""
-        async for chunk in client.query("Generate the SKILL.md file."):
-            if chunk.get("type") == "text":
-                text = chunk.get("text", "")
-                full_content += text
-                yield {"type": "content", "text": text}
+        async for msg in client.receive_response():
+            msg_type = type(msg).__name__
+            if msg_type == "AssistantMessage" and hasattr(msg, "content"):
+                for block in msg.content:
+                    block_type = type(block).__name__
+                    if block_type == "TextBlock" and hasattr(block, "text"):
+                        text = block.text
+                        if text:
+                            full_content += text
+                            yield {"type": "content", "text": text}
         
         # Save to project's .claude/skills/ directory
         skills_dir = project_dir / ".claude" / "skills" / skill_name
