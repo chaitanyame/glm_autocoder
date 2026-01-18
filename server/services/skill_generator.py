@@ -77,7 +77,6 @@ async def recommend_skills(spec_content: str) -> list[dict]:
         system_prompt=system_prompt,
         allowed_tools=[],  # No tools needed for analysis
         setting_sources=[],  # No project settings
-        max_output_tokens=2048,
         temperature=0.3,  # Lower temperature for consistent JSON output
     )
     
@@ -197,7 +196,6 @@ async def generate_skill(
         system_prompt=system_prompt,
         allowed_tools=[],  # No tools needed
         setting_sources=[],
-        max_output_tokens=4096,  # Enough for complete skill
         temperature=0.7,  # Higher creativity for content generation
     )
     
