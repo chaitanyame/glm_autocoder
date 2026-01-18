@@ -18,7 +18,7 @@ from server.services.skill_generator import recommend_skills, generate_skill
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/skills", tags=["skills"])
+router = APIRouter(prefix="/api/skills", tags=["skills"])
 
 # Lazy imports to avoid circular dependencies
 _imports_initialized = False
