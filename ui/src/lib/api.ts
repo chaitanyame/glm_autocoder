@@ -371,11 +371,12 @@ export async function generateIdeas(
   projectName: string,
   category: IdeaCategory,
   promptId: string,
-  count: number = 10
+  count: number = 10,
+  reviewOnly: boolean = true
 ): Promise<GenerateIdeasResponse> {
   return fetchJSON(`/ideation/${encodeURIComponent(projectName)}/generate`, {
     method: 'POST',
-    body: JSON.stringify({ category, prompt_id: promptId, count }),
+    body: JSON.stringify({ category, prompt_id: promptId, count, review_only: reviewOnly }),
   })
 }
 

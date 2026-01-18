@@ -6,8 +6,10 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Loader2, Wifi, WifiOff } from 'lucide-react'
+import { Send, Loader2, Wifi, WifiOff, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAssistantChat } from '../hooks/useAssistantChat'
+import { getSetupStatus } from '../lib/api'
+import type { SetupStatus } from '../lib/types'
 import { ChatMessage } from './ChatMessage'
 
 interface AssistantChatProps {
@@ -19,6 +21,8 @@ export function AssistantChat({ projectName }: AssistantChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const hasStartedRef = useRef(false)
+  const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null)
+  const [setupError, setSetupError] = useState<string | null>(null)
 
   // Memoize the error handler to prevent infinite re-renders
   const handleError = useCallback((error: string) => {
@@ -41,13 +45,37 @@ export function AssistantChat({ projectName }: AssistantChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Start the chat session when component mounts (only once)
-  useEffect(() => {
-    if (!hasStartedRef.current) {
-      hasStartedRef.current = true
-      start()
+  const loadSetupStatus = useCallback(async () => {
+    setSetupError(null)
+    try {
+      const status = await getSetupStatus()
+      setSetupStatus(status)
+      return status
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'Failed to load setup status')
+      return null
     }
-  }, [start])
+  }, [])
+
+  // Load setup status on mount
+  useEffect(() => {
+    loadSetupStatus()
+  }, [loadSetupStatus])
+
+  // Start the chat session when setup is ready (only once)
+  // With API key configured (GLM mode), we don't need Claude CLI credentials
+  useEffect(() => {
+    if (hasStartedRef.current) return
+    if (!setupStatus) return
+
+    // Need API key OR credentials, plus Claude CLI
+    const hasAuth = setupStatus.api_key_configured || setupStatus.credentials
+    if (!hasAuth) return
+    if (!setupStatus.claude_cli) return
+
+    hasStartedRef.current = true
+    start()
+  }, [setupStatus, start])
 
   // Focus input when not loading
   useEffect(() => {
@@ -73,6 +101,37 @@ export function AssistantChat({ projectName }: AssistantChatProps) {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Setup status banner - only show if there's an actual problem */}
+      {/* With API key configured (GLM mode), we don't need Claude CLI credentials */}
+      {(setupError || (setupStatus && (!setupStatus.api_key_configured || !setupStatus.claude_cli))) && (
+        <div className="px-4 py-3 border-b-2 border-[var(--color-neo-border)] bg-[var(--color-neo-bg)]">
+          <div className="flex items-start gap-2 text-sm text-[var(--color-neo-text-secondary)]">
+            <AlertTriangle size={16} className="mt-0.5 text-[var(--color-neo-danger)]" />
+            <div className="flex-1">
+              {setupError ? (
+                <div>Setup check failed: {setupError}</div>
+              ) : (
+                <>
+                  {!setupStatus?.api_key_configured && (
+                    <div>API key not configured. Open Settings to add your Z.AI API key.</div>
+                  )}
+                  {setupStatus?.api_key_configured && !setupStatus?.claude_cli && (
+                    <div>Claude CLI not found. Install it and ensure it is on PATH.</div>
+                  )}
+                </>
+              )}
+            </div>
+            <button
+              onClick={loadSetupStatus}
+              className="neo-btn neo-btn-ghost p-1.5"
+              title="Refresh setup status"
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Connection status indicator */}
       <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-[var(--color-neo-border)] bg-[var(--color-neo-bg)]">
         {connectionStatus === 'connected' ? (

@@ -46,6 +46,27 @@ READONLY_BUILTIN_TOOLS = [
 ]
 
 
+def _get_api_key_from_env_file() -> str | None:
+    """Load API key from environment or .env file."""
+    api_key = os.environ.get("ZAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if api_key and api_key != "your-api-key-here":
+        return api_key
+
+    env_path = ROOT_DIR / ".env"
+    if env_path.exists():
+        try:
+            content = env_path.read_text(encoding="utf-8")
+            for key_name in ["ZAI_API_KEY", "ANTHROPIC_API_KEY"]:
+                for line in content.splitlines():
+                    if line.startswith(f"{key_name}="):
+                        value = line.split("=", 1)[1].strip()
+                        if value and value != "your-api-key-here":
+                            return value
+        except Exception as e:
+            logger.warning(f"Failed to read .env for API key: {e}")
+    return None
+
+
 def get_system_prompt(project_name: str, project_dir: Path) -> str:
     """Generate the system prompt for the assistant with project context."""
     # Try to load app_spec.txt for context
@@ -138,11 +159,20 @@ class AssistantChatSession:
         Creates a new conversation if none exists, then sends an initial greeting.
         Yields message chunks as they stream in.
         """
-        # Create a new conversation if we don't have one
-        if self.conversation_id is None:
-            conv = create_conversation(self.project_dir, self.project_name)
-            self.conversation_id = conv.id
-            yield {"type": "conversation_created", "conversation_id": self.conversation_id}
+        # Validate project directory access before any setup
+        if not self.project_dir.exists() or not self.project_dir.is_dir():
+            yield {
+                "type": "error",
+                "content": f"Project directory not found: {self.project_dir}",
+            }
+            return
+
+        if not os.access(self.project_dir, os.R_OK | os.W_OK):
+            yield {
+                "type": "error",
+                "content": f"Project directory is not writable: {self.project_dir}",
+            }
+            return
 
         # Build permissions list for read-only access
         permissions_list = [
@@ -154,18 +184,32 @@ class AssistantChatSession:
             *READONLY_FEATURE_MCP_TOOLS,
         ]
 
+        # Resolve model from project settings (defaults to glm-4.7)
+        model_id = "glm-4.7"
+        try:
+            from registry import get_project_model
+            model_id = get_project_model(self.project_name) or model_id
+        except Exception as e:
+            logger.warning(f"Failed to read project model: {e}")
+
+        use_glm = model_id.startswith("glm-")
+
         # Build environment settings for GLM model support
-        glm_api_key = os.environ.get("ZAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+        glm_api_key = _get_api_key_from_env_file()
         env_settings = {
-            "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
             "API_TIMEOUT_MS": "300000",  # 5 minute timeout
-            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
-            "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
-            "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
         }
-        if glm_api_key:
-            env_settings["ANTHROPIC_AUTH_TOKEN"] = glm_api_key
+
+        if use_glm:
+            env_settings.update({
+                "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+                "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+                "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+                "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
+            })
+            if glm_api_key:
+                env_settings["ANTHROPIC_AUTH_TOKEN"] = glm_api_key
 
         # Use system Claude CLI
         system_cli = shutil.which("claude")
@@ -178,12 +222,27 @@ class AssistantChatSession:
             }
             return
 
-        if not glm_api_key:
+        if use_glm and not glm_api_key:
             yield {
                 "type": "error",
                 "content": "Missing API key. Set ZAI_API_KEY (or ANTHROPIC_API_KEY) to enable the assistant.",
             }
             return
+
+        if not use_glm:
+            credentials_path = Path.home() / ".claude" / ".credentials.json"
+            if not credentials_path.exists():
+                yield {
+                    "type": "error",
+                    "content": "Claude CLI is not authenticated. Run 'claude auth login' or set ZAI_API_KEY and use a GLM model.",
+                }
+                return
+
+        # Create a new conversation if we don't have one
+        if self.conversation_id is None:
+            conv = create_conversation(self.project_dir, self.project_name)
+            self.conversation_id = conv.id
+            yield {"type": "conversation_created", "conversation_id": self.conversation_id}
         
         # CRITICAL: Set environment variables in the current process
         # The Claude CLI inherits these from the parent process environment
@@ -222,7 +281,7 @@ class AssistantChatSession:
         try:
             self.client = ClaudeSDKClient(
                 options=ClaudeAgentOptions(
-                    model="claude-opus-4-5-20251101",
+                    model=model_id,
                     cli_path=system_cli,
                     system_prompt=system_prompt,
                     allowed_tools=[*READONLY_BUILTIN_TOOLS, *READONLY_FEATURE_MCP_TOOLS],

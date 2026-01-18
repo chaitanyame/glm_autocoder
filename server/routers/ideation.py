@@ -62,6 +62,7 @@ class GenerateIdeasRequest(BaseModel):
     category: str
     prompt_id: str
     count: int = Field(default=10, ge=1, le=20)
+    review_only: bool = False
 
 
 class GenerateIdeasResponse(BaseModel):
@@ -521,9 +522,10 @@ async def generate_ideas(project_name: str, request: GenerateIdeasRequest):
         request.count,
     )
     
-    # Save new ideas
-    existing_ideas = _load_ideas(project_path)
-    all_ideas = existing_ideas + new_ideas
-    _save_ideas(project_path, all_ideas)
+    # Save new ideas unless we're in review-only mode
+    if not request.review_only:
+        existing_ideas = _load_ideas(project_path)
+        all_ideas = existing_ideas + new_ideas
+        _save_ideas(project_path, all_ideas)
     
     return GenerateIdeasResponse(success=True, ideas=new_ideas)

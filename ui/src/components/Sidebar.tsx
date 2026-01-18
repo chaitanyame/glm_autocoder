@@ -95,11 +95,12 @@ export function Sidebar({
       {/* Sidebar container */}
       <div 
         className={`
-          fixed left-0 bottom-0 z-40
+          fixed left-0 z-40
           flex transition-all duration-300 ease-out
           translate-x-0
+          overflow-y-auto overflow-x-hidden
         `}
-        style={{ top: '72px' }}
+        style={{ top: '72px', bottom: 0 }}
       >
         {/* Navigation rail with labels */}
         <div className="

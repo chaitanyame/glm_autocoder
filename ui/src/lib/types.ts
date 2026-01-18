@@ -373,6 +373,11 @@ export interface Idea {
   promoted?: boolean
 }
 
+export interface DraftIdea extends Idea {
+  selected: boolean
+  isDuplicate: boolean
+}
+
 export interface IdeationPrompt {
   id: string
   category: IdeaCategory
@@ -391,6 +396,7 @@ export interface GenerateIdeasRequest {
   category: IdeaCategory
   promptId: string
   count?: number
+  reviewOnly?: boolean
 }
 
 export interface GenerateIdeasResponse {

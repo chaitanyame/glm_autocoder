@@ -200,8 +200,8 @@ function App() {
         return <TerminalPanel projectName={selectedProject ?? ''} />
       case 'assistant':
         return (
-          <div className="flex flex-col h-full min-h-[520px]">
-            <div className="flex items-center justify-between px-4 py-3 border-b-3 border-[var(--color-neo-border)] bg-[var(--color-neo-progress)]">
+          <div className="flex flex-col h-full">
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b-3 border-[var(--color-neo-border)] bg-[var(--color-neo-progress)]">
               <div className="flex items-center gap-2">
                 <div className="bg-white border-2 border-[var(--color-neo-border)] p-1.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
                   <Bot size={18} />
@@ -228,9 +228,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+    <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-bg-primary)]">
       {/* Header */}
-      <header className="bg-[#1a1a2e] text-white border-b-4 border-[#1a1a2e]">
+      <header className="flex-shrink-0 bg-[#1a1a2e] text-white border-b-4 border-[#1a1a2e]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo and Title */}
@@ -381,7 +381,7 @@ function App() {
 
       {/* Main Content */}
       <main
-        className="w-full px-6 py-8 transition-all duration-300"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-8 transition-all duration-300"
         style={{ 
           paddingBottom: debugOpen ? debugPanelHeight + 32 : undefined,
           marginLeft: selectedProject ? '224px' : undefined,
@@ -439,7 +439,7 @@ function App() {
             {activeSidebarPanel === 'board' || !activeSidebarPanel ? (
               renderMainPanel()
             ) : (
-              <div className="neo-card p-0 overflow-hidden min-h-[520px]">
+              <div className="neo-card p-0 overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: '400px' }}>
                 {renderMainPanel()}
               </div>
             )}
