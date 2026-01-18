@@ -77,7 +77,6 @@ async def recommend_skills(spec_content: str) -> list[dict]:
         system_prompt=system_prompt,
         allowed_tools=[],  # No tools needed for analysis
         setting_sources=[],  # No project settings
-        temperature=0.3,  # Lower temperature for consistent JSON output
     )
     
     client = ClaudeSDKClient(options=options)
@@ -196,7 +195,6 @@ async def generate_skill(
         system_prompt=system_prompt,
         allowed_tools=[],  # No tools needed
         setting_sources=[],
-        temperature=0.7,  # Higher creativity for content generation
     )
     
     client = ClaudeSDKClient(options=options)
