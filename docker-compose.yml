@@ -5,9 +5,9 @@
 #   docker compose up -d --build
 #
 # Environment variables (set in .env file):
-#   HOST_PROJECTS_DIR - Path to projects folder on your host machine
-#   ZAI_API_KEY       - Your Z.AI API key (required)
-#   CORS_ORIGINS      - Allowed origins for remote access (optional)
+#   PROJECTS_DIR - Path to projects folder on your host machine
+#   ZAI_API_KEY  - Your Z.AI API key (required)
+#   CORS_ORIGINS - Allowed origins for remote access (optional)
 # =============================================================================
 
 services:
@@ -30,7 +30,7 @@ services:
     
     volumes:
       # Mount projects directory
-      - ${HOST_PROJECTS_DIR:-./projects}:/projects
+      - ${PROJECTS_DIR:-./projects}:/projects
       # Persist registry database across restarts
       - autocoder-data:/root/.autocoder
     
