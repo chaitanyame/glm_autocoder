@@ -366,15 +366,18 @@ async def terminal_websocket(websocket: WebSocket, project_name: str):
         while True:
             try:
                 data = await websocket.receive_text()
+                logger.info(f"Terminal received raw data: {data[:200]}")
                 message = json.loads(data)
                 
                 msg_type = message.get("type")
+                logger.info(f"Terminal message type: {msg_type}")
                 
                 if msg_type == "ping":
                     await websocket.send_json({"type": "pong"})
                     
                 elif msg_type == "command":
                     command = message.get("command", "").strip()
+                    logger.info(f"Terminal command received: {repr(command)}")
                     
                     if not command:
                         await websocket.send_json({
@@ -385,6 +388,7 @@ async def terminal_websocket(websocket: WebSocket, project_name: str):
                     
                     # Validate command for security
                     is_valid, error_msg = validate_command(command, str(project_dir))
+                    logger.info(f"Command validation: is_valid={is_valid}, error_msg={error_msg}")
                     
                     if not is_valid:
                         await websocket.send_json({
