@@ -22,6 +22,14 @@ class ProjectCreate(BaseModel):
     spec_method: Literal["claude", "manual"] = "claude"
 
 
+class ProjectImport(BaseModel):
+    """Request schema for importing an existing project."""
+    path: str = Field(..., min_length=1, description="Absolute path to existing project directory")
+    name: str | None = Field(None, min_length=1, max_length=50, pattern=r'^[a-zA-Z0-9_-]+$',
+                              description="Override name (defaults to folder basename)")
+    analyze_spec: bool = Field(True, description="Whether to analyze and generate spec if missing")
+
+
 class ProjectStats(BaseModel):
     """Project statistics."""
     passing: int = 0
@@ -37,6 +45,8 @@ class ProjectSummary(BaseModel):
     host_path: str | None = None  # Host machine path (for VS Code)
     has_spec: bool
     stats: ProjectStats
+    imported: bool = False  # Whether project was imported (vs created new)
+    spec_status: Literal["valid", "needs_review", "missing"] = "missing"  # Spec validity status
 
 
 class ProjectDetail(BaseModel):
@@ -47,6 +57,8 @@ class ProjectDetail(BaseModel):
     has_spec: bool
     stats: ProjectStats
     prompts_dir: str
+    imported: bool = False  # Whether project was imported (vs created new)
+    spec_status: Literal["valid", "needs_review", "missing"] = "missing"  # Spec validity status
 
 
 class ProjectPrompts(BaseModel):

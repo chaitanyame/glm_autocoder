@@ -6,12 +6,13 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { Save, RotateCcw, FileWarning, Check, Loader2 } from 'lucide-react'
+import { Save, RotateCcw, FileWarning, Check, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
 import { xml } from '@codemirror/lang-xml'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { EditorView } from '@codemirror/view'
 import * as api from '../lib/api'
+import { useProject } from '../hooks/useProjects'
 
 interface SpecEditorPanelProps {
   projectName: string
@@ -24,6 +25,9 @@ export function SpecEditorPanel({ projectName }: SpecEditorPanelProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  
+  // Fetch project to get spec_status
+  const { data: project } = useProject(projectName)
 
   const isDirty = content !== originalContent
 
@@ -93,8 +97,45 @@ export function SpecEditorPanel({ projectName }: SpecEditorPanelProps) {
   // Check if dark mode
   const isDarkMode = document.documentElement.classList.contains('dark')
 
+  // Get spec status from project
+  const specStatus = project?.spec_status || 'missing'
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Spec Status Sticker - shown at top for imported projects */}
+      {specStatus !== 'missing' && (
+        <div className={`
+          flex items-center gap-2 px-3 py-2
+          border-b border-[var(--color-border-subtle)]
+          ${specStatus === 'valid' 
+            ? 'bg-[var(--color-neo-done)]/10' 
+            : 'bg-[var(--color-neo-pending)]/10'
+          }
+        `}>
+          {specStatus === 'valid' ? (
+            <>
+              <CheckCircle2 size={14} className="text-[var(--color-neo-done)]" />
+              <span className="text-xs font-bold text-[var(--color-neo-done)]">
+                Spec OK
+              </span>
+              <span className="text-xs text-[var(--color-text-secondary)]">
+                — Specification is complete and valid
+              </span>
+            </>
+          ) : (
+            <>
+              <AlertTriangle size={14} className="text-[var(--color-neo-pending)]" />
+              <span className="text-xs font-bold text-[var(--color-neo-pending)]">
+                Needs Review
+              </span>
+              <span className="text-xs text-[var(--color-text-secondary)]">
+                — Specification may be incomplete or outdated
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="
         flex items-center justify-between gap-2 px-3 py-2

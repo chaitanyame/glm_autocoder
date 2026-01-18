@@ -301,6 +301,58 @@ def update_project_path(name: str, new_path: Path) -> bool:
     return True
 
 
+def import_or_register_project(name: str, path: Path) -> tuple[bool, str]:
+    """
+    Import an existing project, handling duplicates gracefully.
+    
+    If the name already exists with the same path, returns success.
+    If the name already exists with a different path, returns error.
+    If the path is already registered under a different name, returns error.
+
+    Args:
+        name: The project name (unique identifier).
+        path: The absolute path to the project directory.
+
+    Returns:
+        Tuple of (success, message).
+    """
+    # Validate name
+    if not re.match(r'^[a-zA-Z0-9_-]{1,50}$', name):
+        return False, "Invalid project name. Use only letters, numbers, hyphens, and underscores (1-50 chars)."
+
+    # Ensure path is absolute
+    path = Path(path).resolve()
+    path_posix = path.as_posix()
+
+    with _get_session() as session:
+        # Check if name already exists
+        existing_by_name = session.query(Project).filter(Project.name == name).first()
+        if existing_by_name:
+            if existing_by_name.path == path_posix:
+                # Same name and path - already registered, success
+                logger.info("Project '%s' already registered at same path", name)
+                return True, f"Project '{name}' is already registered"
+            else:
+                # Same name, different path - conflict
+                return False, f"Project '{name}' already exists at different path: {existing_by_name.path}"
+
+        # Check if path already registered under different name
+        existing_by_path = session.query(Project).filter(Project.path == path_posix).first()
+        if existing_by_path:
+            return False, f"This folder is already registered as project '{existing_by_path.name}'"
+
+        # Register new project
+        project = Project(
+            name=name,
+            path=path_posix,
+            created_at=datetime.now()
+        )
+        session.add(project)
+
+    logger.info("Imported project '%s' from path: %s", name, path)
+    return True, f"Project '{name}' imported successfully"
+
+
 # =============================================================================
 # Validation Functions
 # =============================================================================

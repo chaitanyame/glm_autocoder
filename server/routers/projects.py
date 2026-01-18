@@ -17,6 +17,7 @@ from api.database import get_lock_file_path
 from ..schemas import (
     ProjectCreate,
     ProjectDetail,
+    ProjectImport,
     ProjectPrompts,
     ProjectPromptsUpdate,
     ProjectStats,
@@ -70,12 +71,13 @@ def _get_registry_functions():
 
     from registry import (
         get_project_path,
+        import_or_register_project,
         list_registered_projects,
         register_project,
         unregister_project,
         validate_project_path,
     )
-    return register_project, unregister_project, get_project_path, list_registered_projects, validate_project_path
+    return register_project, unregister_project, get_project_path, list_registered_projects, validate_project_path, import_or_register_project
 
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -142,7 +144,7 @@ def get_host_path(container_path: str) -> str | None:
 async def list_projects():
     """List all registered projects."""
     _init_imports()
-    _, _, _, list_registered_projects, validate_project_path = _get_registry_functions()
+    _, _, _, list_registered_projects, validate_project_path, _ = _get_registry_functions()
 
     projects = list_registered_projects()
     result = []
@@ -157,6 +159,7 @@ async def list_projects():
 
         has_spec = _check_spec_exists(project_dir)
         stats = get_project_stats(project_dir)
+        spec_status = _get_spec_status(project_dir)
 
         result.append(ProjectSummary(
             name=name,
@@ -164,6 +167,7 @@ async def list_projects():
             host_path=get_host_path(info["path"]),
             has_spec=has_spec,
             stats=stats,
+            spec_status=spec_status,
         ))
 
     return result
@@ -173,7 +177,7 @@ async def list_projects():
 async def create_project(project: ProjectCreate):
     """Create a new project at the specified path."""
     _init_imports()
-    register_project, _, get_project_path, _, _ = _get_registry_functions()
+    register_project, _, get_project_path, _, _, _ = _get_registry_functions()
 
     name = validate_project_name(project.name)
     project_path = Path(project.path).resolve()
@@ -233,11 +237,121 @@ async def create_project(project: ProjectCreate):
     )
 
 
+@router.post("/import", response_model=ProjectSummary)
+async def import_project(project: ProjectImport):
+    """
+    Import an existing project folder.
+    
+    Registers the folder in the project registry without creating new directories.
+    If prompts are missing, they will be scaffolded. If spec exists, it will be validated.
+    """
+    from fastapi import BackgroundTasks
+    _init_imports()
+    _, _, get_project_path, _, _, import_or_register_project = _get_registry_functions()
+
+    project_path = Path(project.path).resolve()
+
+    # Validate the path exists and is a directory
+    if not project_path.exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Path does not exist: {project_path}"
+        )
+
+    if not project_path.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail="Path is not a directory"
+        )
+
+    # Security: Check if path is in a blocked location
+    from .filesystem import is_path_blocked
+    if is_path_blocked(project_path):
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot import project from system or sensitive directory"
+        )
+
+    # Derive name from folder basename or use provided override
+    name = project.name
+    if not name:
+        name = project_path.name
+        # Sanitize the name to match the allowed pattern
+        name = re.sub(r'[^a-zA-Z0-9_-]', '-', name)[:50]
+
+    # Validate the derived/provided name
+    if not re.match(r'^[a-zA-Z0-9_-]{1,50}$', name):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid project name '{name}'. Use only letters, numbers, hyphens, and underscores (1-50 chars)."
+        )
+
+    # Try to import/register the project
+    success, message = import_or_register_project(name, project_path)
+    if not success:
+        raise HTTPException(status_code=409, detail=message)
+
+    # Scaffold missing prompts (non-destructive - only copies missing files)
+    _scaffold_project_prompts(project_path)
+
+    # Check if spec exists and determine its status
+    has_spec = _check_spec_exists(project_path)
+    spec_status = _get_spec_status(project_path)
+
+    # Get project stats
+    stats = get_project_stats(project_path)
+
+    path_str = project_path.as_posix()
+    return ProjectSummary(
+        name=name,
+        path=path_str,
+        host_path=get_host_path(path_str),
+        has_spec=has_spec,
+        stats=stats,
+        imported=True,
+        spec_status=spec_status,
+    )
+
+
+def _get_spec_status(project_dir: Path) -> str:
+    """
+    Determine the spec validity status for a project.
+    
+    Returns:
+        "valid" - spec exists and has required XML structure
+        "needs_review" - spec exists but may be incomplete or auto-generated
+        "missing" - no spec file found
+    """
+    prompts_dir = project_dir / "prompts"
+    spec_file = prompts_dir / "app_spec.txt"
+    
+    if not spec_file.exists():
+        # Also check legacy location
+        legacy_spec = project_dir / "app_spec.txt"
+        if not legacy_spec.exists():
+            return "missing"
+        spec_file = legacy_spec
+    
+    try:
+        content = spec_file.read_text(encoding="utf-8")
+        # Check for required XML structure
+        if "<project_specification>" in content and "</project_specification>" in content:
+            # Check for core sections that indicate a complete spec
+            has_overview = "<overview>" in content or "<project_overview>" in content
+            has_features = "<core_features>" in content or "<features>" in content
+            if has_overview and has_features:
+                return "valid"
+            return "needs_review"
+        return "needs_review"
+    except Exception:
+        return "needs_review"
+
+
 @router.get("/{name}", response_model=ProjectDetail)
 async def get_project(name: str):
     """Get detailed information about a project."""
     _init_imports()
-    _, _, get_project_path, _, _ = _get_registry_functions()
+    _, _, get_project_path, _, _, _ = _get_registry_functions()
 
     name = validate_project_name(name)
     project_dir = get_project_path(name)
@@ -251,6 +365,7 @@ async def get_project(name: str):
     has_spec = _check_spec_exists(project_dir)
     stats = get_project_stats(project_dir)
     prompts_dir = _get_project_prompts_dir(project_dir)
+    spec_status = _get_spec_status(project_dir)
 
     path_str = project_dir.as_posix()
     return ProjectDetail(
@@ -260,6 +375,7 @@ async def get_project(name: str):
         has_spec=has_spec,
         stats=stats,
         prompts_dir=str(prompts_dir),
+        spec_status=spec_status,
     )
 
 
@@ -273,7 +389,7 @@ async def delete_project(name: str, delete_files: bool = False):
         delete_files: If True, also delete the project directory and files
     """
     _init_imports()
-    _, unregister_project, get_project_path, _, _ = _get_registry_functions()
+    _, unregister_project, get_project_path, _, _, _ = _get_registry_functions()
 
     name = validate_project_name(name)
     project_dir = get_project_path(name)
@@ -309,7 +425,7 @@ async def delete_project(name: str, delete_files: bool = False):
 async def get_project_prompts(name: str):
     """Get the content of project prompt files."""
     _init_imports()
-    _, _, get_project_path, _, _ = _get_registry_functions()
+    _, _, get_project_path, _, _, _ = _get_registry_functions()
 
     name = validate_project_name(name)
     project_dir = get_project_path(name)
@@ -342,7 +458,7 @@ async def get_project_prompts(name: str):
 async def update_project_prompts(name: str, prompts: ProjectPromptsUpdate):
     """Update project prompt files."""
     _init_imports()
-    _, _, get_project_path, _, _ = _get_registry_functions()
+    _, _, get_project_path, _, _, _ = _get_registry_functions()
 
     name = validate_project_name(name)
     project_dir = get_project_path(name)
@@ -372,7 +488,7 @@ async def update_project_prompts(name: str, prompts: ProjectPromptsUpdate):
 async def get_project_stats_endpoint(name: str):
     """Get current progress statistics for a project."""
     _init_imports()
-    _, _, get_project_path, _, _ = _get_registry_functions()
+    _, _, get_project_path, _, _, _ = _get_registry_functions()
 
     name = validate_project_name(name)
     project_dir = get_project_path(name)
@@ -413,7 +529,7 @@ def _get_model_functions():
 @router.get("/{name}/settings", response_model=ProjectSettingsResponse)
 async def get_project_settings(name: str):
     """Get project-level settings (model configuration)."""
-    _, _, get_project_path, _, _ = _get_registry_functions()
+    _, _, get_project_path, _, _, _ = _get_registry_functions()
     get_project_model, _ = _get_model_functions()
 
     name = validate_project_name(name)
@@ -433,7 +549,7 @@ async def get_project_settings(name: str):
 @router.put("/{name}/settings", response_model=ProjectSettingsResponse)
 async def update_project_settings(name: str, settings: ProjectSettingsUpdate):
     """Update project-level settings (model configuration)."""
-    _, _, get_project_path, _, _ = _get_registry_functions()
+    _, _, get_project_path, _, _, _ = _get_registry_functions()
     get_project_model, set_project_model = _get_model_functions()
 
     name = validate_project_name(name)

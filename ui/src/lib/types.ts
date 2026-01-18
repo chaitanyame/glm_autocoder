@@ -16,6 +16,8 @@ export interface ProjectSummary {
   host_path?: string | null  // Host machine path (for VS Code)
   has_spec: boolean
   stats: ProjectStats
+  imported?: boolean  // Whether project was imported (vs created new)
+  spec_status?: 'valid' | 'needs_review' | 'missing'  // Spec validity status
 }
 
 export interface ProjectDetail extends ProjectSummary {

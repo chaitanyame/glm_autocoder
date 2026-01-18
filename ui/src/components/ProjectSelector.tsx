@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { ChevronDown, Plus, FolderOpen, Loader2, Trash2 } from 'lucide-react'
+import { ChevronDown, Plus, FolderOpen, Loader2, Trash2, FolderInput } from 'lucide-react'
 import type { ProjectSummary } from '../lib/types'
 import { NewProjectModal } from './NewProjectModal'
+import { ImportProjectModal } from './ImportProjectModal'
 import { useDeleteProject } from '../hooks/useProjects'
 
 interface ProjectSelectorProps {
@@ -19,11 +20,17 @@ export function ProjectSelector({
 }: ProjectSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   
   const deleteProject = useDeleteProject()
 
   const handleProjectCreated = (projectName: string) => {
+    onSelectProject(projectName)
+    setIsOpen(false)
+  }
+
+  const handleProjectImported = (projectName: string) => {
     onSelectProject(projectName)
     setIsOpen(false)
   }
@@ -145,6 +152,18 @@ export function ProjectSelector({
               <Plus size={16} />
               New Project
             </button>
+
+            {/* Import Existing */}
+            <button
+              onClick={() => {
+                setShowImportModal(true)
+                setIsOpen(false)
+              }}
+              className="w-full neo-dropdown-item flex items-center gap-2 font-bold"
+            >
+              <FolderInput size={16} />
+              Import Existing
+            </button>
           </div>
         </>
       )}
@@ -154,6 +173,13 @@ export function ProjectSelector({
         isOpen={showNewProjectModal}
         onClose={() => setShowNewProjectModal(false)}
         onProjectCreated={handleProjectCreated}
+      />
+
+      {/* Import Project Modal */}
+      <ImportProjectModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onProjectImported={handleProjectImported}
       />
 
       {/* Delete Confirmation Modal */}

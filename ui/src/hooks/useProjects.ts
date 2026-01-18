@@ -37,6 +37,18 @@ export function useCreateProject() {
   })
 }
 
+export function useImportProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ path, name, analyzeSpec }: { path: string; name?: string; analyzeSpec?: boolean }) =>
+      api.importProject(path, name, analyzeSpec),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    },
+  })
+}
+
 export function useDeleteProject() {
   const queryClient = useQueryClient()
 
