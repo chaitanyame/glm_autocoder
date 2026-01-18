@@ -11,7 +11,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { 
   Sparkles, Loader2, CheckCircle2, AlertCircle, Save, RotateCcw,
-  ChevronRight, FileCode, Check, X
+  ChevronRight, FileCode, Check
 } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
 import { markdown } from '@codemirror/lang-markdown'
@@ -34,6 +34,7 @@ export function SkillsPanel({ projectName }: SkillsPanelProps) {
   // Existing skills state
   const [existingSkills, setExistingSkills] = useState<SkillInfo[]>([])
   const [isLoadingExisting, setIsLoadingExisting] = useState(true)
+  void isLoadingExisting // Suppress unused warning - used for future loading state UI
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false)
