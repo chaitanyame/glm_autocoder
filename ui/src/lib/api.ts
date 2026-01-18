@@ -26,6 +26,9 @@ import type {
   IdeaCategoryInfo,
   IdeationPrompt,
   GenerateIdeasResponse,
+  SkillRecommendation,
+  SkillInfo,
+  GenerateSkillsRequest,
 } from './types'
 
 const API_BASE = '/api'
@@ -430,4 +433,127 @@ export async function saveFile(
     method: 'POST',
     body: JSON.stringify({ project: projectName, path: relativePath, content }),
   })
+}
+
+// ============================================================================
+// Skills API
+// ============================================================================
+
+export async function listSkills(projectName: string): Promise<SkillInfo[]> {
+  return fetchJSON(`/skills/projects/${encodeURIComponent(projectName)}/skills`)
+}
+
+export async function getSkillRecommendations(projectName: string): Promise<SkillRecommendation[]> {
+  return fetchJSON(`/skills/projects/${encodeURIComponent(projectName)}/skills/recommend`, {
+    method: 'POST',
+  })
+}
+
+export async function getSkillContent(projectName: string, skillName: string): Promise<string> {
+  const response = await fetchJSON<{ content: string }>(
+    `/skills/projects/${encodeURIComponent(projectName)}/skills/${encodeURIComponent(skillName)}`
+  )
+  return response.content
+}
+
+export async function updateSkillContent(
+  projectName: string,
+  skillName: string,
+  content: string
+): Promise<void> {
+  await fetchJSON(`/skills/projects/${encodeURIComponent(projectName)}/skills/${encodeURIComponent(skillName)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content }),
+  })
+}
+
+export function generateSkillsStream(
+  projectName: string,
+  skillNames: string[]
+): EventSource {
+  const body: GenerateSkillsRequest = { skill_names: skillNames }
+  
+  // Use POST with EventSource via a helper that converts POST to GET with params
+  // Since EventSource only supports GET, we'll use a direct fetch and read stream
+  // Return a mock EventSource that wraps fetch streaming
+  
+  const url = `${API_BASE}/skills/projects/${encodeURIComponent(projectName)}/skills/generate`
+  
+  // Create a real EventSource-like object using fetch
+  const eventSource = new EventTarget() as EventSource
+  let abortController = new AbortController()
+  
+  const startStream = async () => {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
+        body: JSON.stringify(body),
+        signal: abortController.signal,
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      
+      if (!reader) {
+        throw new Error('No response body')
+      }
+      
+      let buffer = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) break
+        
+        buffer += decoder.decode(value, { stream: true })
+        
+        // Process complete SSE messages
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''  // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)  // Remove 'data: ' prefix
+            try {
+              const event = new MessageEvent('message', {
+                data: data,
+              })
+              eventSource.dispatchEvent(event)
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e)
+            }
+          }
+        }
+      }
+      
+      // Dispatch close event
+      const closeEvent = new Event('close')
+      eventSource.dispatchEvent(closeEvent)
+      
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        const errorEvent = new MessageEvent('error', {
+          data: JSON.stringify({ type: 'error', message: error.message })
+        })
+        eventSource.dispatchEvent(errorEvent)
+      }
+    }
+  }
+  
+  startStream()
+  
+  // Add close method
+  ;(eventSource as any).close = () => {
+    abortController.abort()
+  }
+  
+  return eventSource
 }

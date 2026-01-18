@@ -405,6 +405,38 @@ export interface GenerateIdeasResponse {
 }
 
 // ============================================================================
+// Skills Types
+// ============================================================================
+
+export interface SkillRecommendation {
+  name: string
+  description: string
+  rationale: string
+}
+
+export interface SkillInfo {
+  name: string
+  path: string
+  exists: boolean
+}
+
+export interface GenerateSkillsRequest {
+  skill_names: string[]
+}
+
+export interface SkillGenerationEvent {
+  type: 'skill_start' | 'status' | 'content' | 'skill_complete' | 'complete' | 'error'
+  skill_name?: string
+  index?: number
+  total?: number
+  message?: string
+  text?: string
+  content?: string
+  path?: string
+  count?: number
+}
+
+// ============================================================================
 // Terminal Types
 // ============================================================================
 

@@ -13,9 +13,10 @@ import {
   FileCode,
   Terminal,
   Bot,
+  Sparkles,
 } from 'lucide-react'
 
-export type SidebarPanel = 'board' | 'ideation' | 'backlog' | 'spec-editor' | 'terminal' | 'assistant' | null
+export type SidebarPanel = 'board' | 'ideation' | 'backlog' | 'spec-editor' | 'terminal' | 'assistant' | 'skills' | null
 
 interface SidebarProps {
   isOpen: boolean
@@ -74,6 +75,13 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
     icon: <Bot size={20} />,
     shortcut: 'A',
     color: 'var(--color-status-pending)'
+  },
+  { 
+    id: 'skills', 
+    label: 'Skills', 
+    icon: <Sparkles size={20} />, 
+    shortcut: 'K',
+    color: 'var(--color-accent-tertiary)'
   },
 ]
 

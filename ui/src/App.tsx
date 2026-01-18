@@ -23,6 +23,7 @@ import { IdeationPanel } from './components/IdeationPanel'
 import { BacklogPanel } from './components/BacklogPanel'
 import { SpecEditorPanel } from './components/SpecEditorPanel'
 import { TerminalPanel } from './components/TerminalPanel'
+import { SkillsPanel } from './components/SkillsPanel'
 import { Plus, Loader2, Settings, Moon, Sun, Menu, X, Bot } from 'lucide-react'
 import type { Feature } from './lib/types'
 
@@ -151,6 +152,12 @@ function App() {
           e.preventDefault()
           setActiveSidebarPanel(prev => prev === 'assistant' ? 'board' : 'assistant')
         }
+
+        // K : Skills panel
+        if (e.key === 'k' || e.key === 'K') {
+          e.preventDefault()
+          setActiveSidebarPanel(prev => prev === 'skills' ? 'board' : 'skills')
+        }
       }
 
       // Escape : Close modals
@@ -198,6 +205,8 @@ function App() {
         return <SpecEditorPanel projectName={selectedProject ?? ''} />
       case 'terminal':
         return <TerminalPanel projectName={selectedProject ?? ''} />
+      case 'skills':
+        return <SkillsPanel projectName={selectedProject ?? ''} />
       case 'assistant':
         return (
           <div className="flex flex-col h-full">

@@ -12,6 +12,7 @@ from .filesystem import router as filesystem_router
 from .ideation import router as ideation_router
 from .projects import router as projects_router
 from .spec_creation import router as spec_creation_router
+from .skills import router as skills_router
 
 __all__ = [
     "projects_router",
@@ -21,4 +22,5 @@ __all__ = [
     "filesystem_router",
     "assistant_chat_router",
     "ideation_router",
+    "skills_router",
 ]
