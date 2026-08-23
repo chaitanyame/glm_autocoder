@@ -14,6 +14,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
+# Docker environment detection
+IS_DOCKER = os.environ.get("DOCKER_ENV") == "1"
+DOCKER_PROJECTS_DIR = Path("/projects")
+
 # Module logger
 logger = logging.getLogger(__name__)
 
@@ -129,6 +133,17 @@ def is_path_blocked(path: Path) -> bool:
     except (OSError, ValueError):
         return True  # Can't resolve = blocked
 
+    # In Docker, only allow paths under /projects
+    if IS_DOCKER:
+        try:
+            resolved.relative_to(DOCKER_PROJECTS_DIR)
+            return False  # Path is under /projects, allowed
+        except ValueError:
+            # Also allow the /projects directory itself
+            if resolved == DOCKER_PROJECTS_DIR:
+                return False
+            return True  # Not under /projects, blocked
+
     blocked_paths = get_blocked_paths()
 
     # Check if path is exactly a blocked path or inside one
@@ -194,10 +209,17 @@ async def list_directory(
 
     Returns directories only (for folder selection).
     On Windows, includes available drives.
+    In Docker mode, defaults to /projects directory.
     """
-    # Default to home directory
+    # Default to home directory (or /projects in Docker)
     if path is None or path == "":
-        target = Path.home()
+        if IS_DOCKER:
+            target = DOCKER_PROJECTS_DIR
+            # Ensure /projects exists
+            if not target.exists():
+                target.mkdir(parents=True, exist_ok=True)
+        else:
+            target = Path.home()
     else:
         # Security: Block UNC paths
         if is_unc_path(path):
@@ -287,9 +309,9 @@ async def list_directory(
         if not is_path_blocked(parent):
             parent_path = parent.as_posix()
 
-    # Get drives on Windows
+    # Get drives on Windows (not in Docker mode - Docker runs Linux)
     drives = None
-    if sys.platform == "win32":
+    if sys.platform == "win32" and not IS_DOCKER:
         drives = get_windows_drives()
 
     return DirectoryListResponse(
@@ -305,9 +327,10 @@ async def list_drives():
     """
     List available drives (Windows only).
 
-    Returns null on non-Windows platforms.
+    Returns null on non-Windows platforms or in Docker mode.
     """
-    if sys.platform != "win32":
+    # Docker runs Linux, so no Windows drives
+    if IS_DOCKER or sys.platform != "win32":
         return None
 
     return get_windows_drives()

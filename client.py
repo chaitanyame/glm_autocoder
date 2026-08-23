@@ -204,10 +204,44 @@ def create_client(project_dir: Path, model: str, yolo_mode: bool = False, api_ke
     }
     if not yolo_mode:
         # Include Playwright MCP server for browser automation (standard mode only)
-        mcp_servers["playwright"] = {
+        # Use headless mode in Docker/server environments (no display)
+        # Use --isolated to prevent browser profile conflicts between projects
+        playwright_args = [
+            "@playwright/mcp@latest",
+        ]
+        
+        # Use chromium in Docker (installed via npx), chrome in standalone (system-installed)
+        if os.environ.get("DOCKER_ENV") == "1":
+            playwright_args.extend(["--browser", "chromium"])
+            # Required flags for Chromium in Docker environment
+            playwright_args.append("--no-sandbox")  # Chrome requires this in Docker
+        else:
+            playwright_args.extend(["--browser", "chrome"])
+        
+        playwright_args.extend([
+            "--viewport-size", "1280x720",
+            "--isolated",  # Each session gets an independent ephemeral browser context
+        ])
+        
+        if os.environ.get("DOCKER_ENV") == "1" or not os.environ.get("DISPLAY"):
+            playwright_args.append("--headless")
+        
+        # Build MCP server config
+        playwright_config = {
             "command": "npx",
-            "args": ["@playwright/mcp@latest", "--viewport-size", "1280x720"],
+            "args": playwright_args,
         }
+        
+        # In Docker, pass environment variables to MCP server
+        # Must inherit parent env and add/override specific ones
+        if os.environ.get("DOCKER_ENV") == "1":
+            playwright_config["env"] = {
+                **os.environ,  # Inherit all parent environment variables
+                "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/home/autocoder/ms-playwright"),
+                "HOME": os.environ.get("HOME", "/home/autocoder"),
+            }
+        
+        mcp_servers["playwright"] = playwright_config
 
     return ClaudeSDKClient(
         options=ClaudeAgentOptions(

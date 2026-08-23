@@ -14,7 +14,7 @@ import { X, Bot, FileEdit, ArrowRight, ArrowLeft, Loader2, CheckCircle2, Folder 
 import { useCreateProject } from '../hooks/useProjects'
 import { SpecCreationChat } from './SpecCreationChat'
 import { FolderBrowser } from './FolderBrowser'
-import { startAgent } from '../lib/api'
+import { getSetupStatus, startAgent } from '../lib/api'
 
 type InitializerStatus = 'idle' | 'starting' | 'error'
 
@@ -123,6 +123,12 @@ export function NewProjectModal({
     // Auto-start the initializer agent
     setInitializerStatus('starting')
     try {
+      const setup = await getSetupStatus()
+      if (!setup.api_key_configured) {
+        setInitializerStatus('error')
+        setInitializerError('API key is required to run the agent. Open Settings (gear icon) and configure an API key first.')
+        return
+      }
       await startAgent(projectName.trim(), yoloMode)
       // Success - navigate to project
       setStep('complete')

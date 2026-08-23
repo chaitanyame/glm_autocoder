@@ -1,0 +1,54 @@
+# =============================================================================
+# ZLM Code Harness - Development Dockerfile
+# =============================================================================
+# For development with hot reload and volume mounts
+# =============================================================================
+
+FROM python:3.12-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Claude CLI
+RUN npm install -g @anthropic-ai/claude-code
+
+WORKDIR /app
+
+# Copy and install Python requirements
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy package.json for npm install
+COPY ui/package.json ui/package-lock.json* ./ui/
+
+# Install npm dependencies
+WORKDIR /app/ui
+RUN npm ci
+
+WORKDIR /app
+
+# Create non-root user for security (Chrome requires non-root or --no-sandbox)
+RUN useradd -m -u 1000 -s /bin/bash autocoder && \
+    mkdir -p /projects /home/autocoder/.autocoder /home/autocoder/.zlm-harness && \
+    chown -R autocoder:autocoder /app /projects /home/autocoder
+
+# Environment
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV HOME=/home/autocoder
+
+# Switch to non-root user
+USER autocoder
+
+EXPOSE 8888 5173
+
+# Default: run in dev mode
+CMD ["python", "start_ui.py", "--dev"]

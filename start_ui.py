@@ -31,6 +31,44 @@ from pathlib import Path
 ROOT = Path(__file__).parent.absolute()
 VENV_DIR = ROOT / "venv"
 UI_DIR = ROOT / "ui"
+ENV_FILE = ROOT / ".env"
+ENV_EXAMPLE = ROOT / ".env.example"
+
+
+def save_api_key_to_env(api_key: str) -> None:
+    """Save API key to .env file for persistence."""
+    import re
+
+    # Read existing .env or create from example
+    if ENV_FILE.exists():
+        content = ENV_FILE.read_text()
+    elif ENV_EXAMPLE.exists():
+        content = ENV_EXAMPLE.read_text()
+    else:
+        content = "# GLM / Z.AI API Configuration\n"
+
+    # Update or add ZAI_API_KEY
+    if re.search(r'^ZAI_API_KEY=', content, re.MULTILINE):
+        content = re.sub(
+            r'^ZAI_API_KEY=.*$',
+            f'ZAI_API_KEY={api_key}',
+            content,
+            flags=re.MULTILINE
+        )
+    else:
+        # Add after header comments
+        lines = content.split('\n')
+        insert_idx = 0
+        for i, line in enumerate(lines):
+            if line.startswith('#') or line.strip() == '':
+                insert_idx = i + 1
+            else:
+                break
+        lines.insert(insert_idx, f'ZAI_API_KEY={api_key}')
+        content = '\n'.join(lines)
+
+    ENV_FILE.write_text(content)
+    print(f"  API key saved to {ENV_FILE}")
 
 
 def print_step(step: int, total: int, message: str) -> None:
@@ -164,7 +202,7 @@ def start_dev_server(port: int, api_key: str | None = None) -> tuple:
     # Prepare environment for subprocess, including API key if provided
     backend_env = os.environ.copy()
     if api_key:
-        backend_env["AUTO_CODER_API_KEY"] = api_key
+        backend_env["ZAI_API_KEY"] = api_key
 
     # Start FastAPI
     backend = subprocess.Popen([
@@ -195,7 +233,7 @@ def start_production_server(port: int, api_key: str | None = None):
     # Prepare environment for subprocess, including API key if provided
     backend_env = os.environ.copy()
     if api_key:
-        backend_env["AUTO_CODER_API_KEY"] = api_key
+        backend_env["ZAI_API_KEY"] = api_key
 
     return subprocess.Popen([
         str(venv_python), "-m", "uvicorn",
@@ -210,13 +248,15 @@ def main() -> None:
     dev_mode = "--dev" in sys.argv
 
     # Read API key from environment (set by start_ui.bat or start_ui.sh)
-    api_key = os.environ.get("AUTO_CODER_API_KEY") or os.environ.get("API_KEY", "")
+    api_key = os.environ.get("ZAI_API_KEY") or os.environ.get("AUTO_CODER_API_KEY") or os.environ.get("API_KEY", "")
 
     print("=" * 50)
     print("  AutoCoder UI Setup")
     print("=" * 50)
 
-    if api_key:
+    # Save API key to .env if provided via command line
+    if api_key and api_key != "your-api-key-here":
+        save_api_key_to_env(api_key)
         print("  GLM model support: ENABLED")
 
     total_steps = 6 if not dev_mode else 5

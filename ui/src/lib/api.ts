@@ -12,10 +12,15 @@ import type {
   AgentStatusResponse,
   AgentActionResponse,
   SetupStatus,
+  ApiKeyResponse,
+  Settings,
+  SettingsUpdate,
   DirectoryListResponse,
   PathValidationResponse,
   AssistantConversation,
   AssistantConversationDetail,
+  ProjectSettings,
+  ProjectSettingsUpdate,
 } from './types'
 
 const API_BASE = '/api'
@@ -173,6 +178,50 @@ export async function getSetupStatus(): Promise<SetupStatus> {
 
 export async function healthCheck(): Promise<{ status: string }> {
   return fetchJSON('/health')
+}
+
+export async function getApiKeyStatus(): Promise<ApiKeyResponse> {
+  return fetchJSON('/setup/api-key')
+}
+
+export async function saveApiKey(apiKey: string): Promise<ApiKeyResponse> {
+  return fetchJSON('/setup/api-key', {
+    method: 'POST',
+    body: JSON.stringify({ api_key: apiKey }),
+  })
+}
+
+// ============================================================================
+// Settings API
+// ============================================================================
+
+export async function getSettings(): Promise<Settings> {
+  return fetchJSON('/settings')
+}
+
+export async function updateSettings(settings: SettingsUpdate): Promise<Settings> {
+  return fetchJSON('/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
+}
+
+// ============================================================================
+// Project Settings API (per-project model configuration)
+// ============================================================================
+
+export async function getProjectSettings(projectName: string): Promise<ProjectSettings> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/settings`)
+}
+
+export async function updateProjectSettings(
+  projectName: string,
+  settings: ProjectSettingsUpdate
+): Promise<ProjectSettings> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/settings`, {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
 }
 
 // ============================================================================

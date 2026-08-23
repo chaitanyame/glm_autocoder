@@ -215,13 +215,14 @@ class AgentProcessManager:
                     self.status = "stopped"
                 self._remove_lock()
 
-    async def start(self, yolo_mode: bool = False, api_key: str | None = None) -> tuple[bool, str]:
+    async def start(self, yolo_mode: bool = False, api_key: str | None = None, model: str | None = None) -> tuple[bool, str]:
         """
         Start the agent as a subprocess.
 
         Args:
             yolo_mode: If True, run in YOLO mode (no browser testing)
             api_key: Optional API key for GLM model support
+            model: Optional model ID to use (e.g., 'glm-4.7', 'glm-4.5-air')
 
         Returns:
             Tuple of (success, message)
@@ -250,6 +251,10 @@ class AgentProcessManager:
         # Add --api-key argument if provided
         if api_key:
             cmd.extend(["--api-key", api_key])
+
+        # Add --model argument if provided
+        if model:
+            cmd.extend(["--model", model])
 
         # Prepare environment variables for the subprocess
         env = os.environ.copy()

@@ -60,6 +60,7 @@ class Project(Base):
     name = Column(String(50), primary_key=True, index=True)
     path = Column(String, nullable=False)  # POSIX format for cross-platform
     created_at = Column(DateTime, nullable=False)
+    selected_model = Column(String(100), nullable=True, default="glm-4.7")  # Per-project model
 
 
 # =============================================================================
@@ -88,6 +89,23 @@ def get_registry_path() -> Path:
     return get_config_dir() / "registry.db"
 
 
+def _run_migrations(engine) -> None:
+    """Run database migrations for new columns."""
+    from sqlalchemy import inspect, text
+    
+    inspector = inspect(engine)
+    columns = [col['name'] for col in inspector.get_columns('projects')]
+    
+    # Add selected_model column if it doesn't exist
+    if 'selected_model' not in columns:
+        with engine.connect() as conn:
+            conn.execute(text(
+                "ALTER TABLE projects ADD COLUMN selected_model VARCHAR(100) DEFAULT 'glm-4.7'"
+            ))
+            conn.commit()
+            logger.info("Added selected_model column to projects table")
+
+
 def _get_engine():
     """
     Get or create the database engine (singleton pattern).
@@ -102,6 +120,7 @@ def _get_engine():
         db_url = f"sqlite:///{db_path.as_posix()}"
         _engine = create_engine(db_url, connect_args={"check_same_thread": False})
         Base.metadata.create_all(bind=_engine)
+        _run_migrations(_engine)  # Run migrations after table creation
         _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
         logger.debug("Initialized registry database at: %s", db_path)
 
@@ -364,3 +383,52 @@ def list_valid_projects() -> list[dict[str, Any]]:
         return valid
     finally:
         session.close()
+
+
+# =============================================================================
+# Project Model Configuration
+# =============================================================================
+
+DEFAULT_MODEL = "glm-4.7"
+
+
+def get_project_model(name: str) -> str:
+    """
+    Get the selected model for a project.
+
+    Args:
+        name: The project name.
+
+    Returns:
+        The model ID (defaults to 'glm-4.7' if not set).
+    """
+    _, SessionLocal = _get_engine()
+    session = SessionLocal()
+    try:
+        project = session.query(Project).filter(Project.name == name).first()
+        if project is None:
+            return DEFAULT_MODEL
+        return project.selected_model or DEFAULT_MODEL
+    finally:
+        session.close()
+
+
+def set_project_model(name: str, model: str) -> bool:
+    """
+    Set the selected model for a project.
+
+    Args:
+        name: The project name.
+        model: The model ID to use.
+
+    Returns:
+        True if updated, False if project wasn't found.
+    """
+    with _get_session() as session:
+        project = session.query(Project).filter(Project.name == name).first()
+        if not project:
+            return False
+        project.selected_model = model
+
+    logger.info("Updated model for project '%s' to: %s", name, model)
+    return True

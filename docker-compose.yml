@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  autocoder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zlm-code-harness
+    env_file:
+      - .env
+    environment:
+      - DOCKER_ENV=1
+    volumes:
+      # Mount projects directory using HOST_PROJECTS_DIR from .env
+      - ${HOST_PROJECTS_DIR:-/opt/autocoder_projects}:/projects
+      # Named volume for autocoder data (registry.db, etc.) - non-root user home
+      - autocoder-data:/home/autocoder/.autocoder
+    ports:
+      - "8888:8888"
+    restart: unless-stopped
+
+volumes:
+  autocoder-data:

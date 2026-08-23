@@ -11,7 +11,7 @@ type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 interface UseSpecChatOptions {
   projectName: string
   onComplete?: (specPath: string) => void
-  onError?: (error: string) => void
+  onError?: (error: string | null) => void
 }
 
 interface UseSpecChatReturn {
@@ -133,21 +133,29 @@ export function useSpecChat({
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log('[useSpecChat] Already connected, skipping')
       return
     }
 
+    // Reset reconnection counter when explicitly connecting
+    reconnectAttempts.current = 0
     setConnectionStatus('connecting')
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = window.location.host
     const wsUrl = `${protocol}//${host}/api/spec/ws/${encodeURIComponent(projectName)}`
 
+    console.log('[useSpecChat] Connecting to:', wsUrl)
+
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
     ws.onopen = () => {
+      console.log('[useSpecChat] WebSocket connected!')
       setConnectionStatus('connected')
       reconnectAttempts.current = 0
+      // Clear any previous error when successfully connected
+      onError?.(null)
 
       // Start ping interval to keep connection alive
       pingIntervalRef.current = window.setInterval(() => {
@@ -157,7 +165,8 @@ export function useSpecChat({
       }, 30000)
     }
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.log('[useSpecChat] WebSocket closed:', event.code, event.reason)
       setConnectionStatus('disconnected')
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current)
@@ -168,11 +177,13 @@ export function useSpecChat({
       if (reconnectAttempts.current < maxReconnectAttempts && !isCompleteRef.current) {
         reconnectAttempts.current++
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000)
+        console.log('[useSpecChat] Scheduling reconnect in', delay, 'ms')
         reconnectTimeoutRef.current = window.setTimeout(connect, delay)
       }
     }
 
-    ws.onerror = () => {
+    ws.onerror = (event) => {
+      console.error('[useSpecChat] WebSocket error:', event)
       setConnectionStatus('error')
       onError?.('WebSocket connection error')
     }

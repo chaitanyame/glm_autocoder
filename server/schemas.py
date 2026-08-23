@@ -34,6 +34,7 @@ class ProjectSummary(BaseModel):
     """Summary of a project for list view."""
     name: str
     path: str
+    host_path: str | None = None  # Host machine path (for VS Code)
     has_spec: bool
     stats: ProjectStats
 
@@ -42,6 +43,7 @@ class ProjectDetail(BaseModel):
     """Detailed project information."""
     name: str
     path: str
+    host_path: str | None = None  # Host machine path (for VS Code)
     has_spec: bool
     stats: ProjectStats
     prompts_dir: str
@@ -131,6 +133,60 @@ class SetupStatus(BaseModel):
     credentials: bool
     node: bool
     npm: bool
+    api_key_configured: bool = False
+
+
+# ============================================================================
+# Settings Schemas
+# ============================================================================
+
+class ModelOption(BaseModel):
+    """Available model option."""
+    id: str
+    name: str
+    description: str = ""
+
+
+class SettingsResponse(BaseModel):
+    """Current application settings."""
+    api_key_configured: bool
+    api_key_masked: str | None = None
+    selected_model: str = "glm-4.7"
+    available_models: list[ModelOption] = []
+    base_url: str = "https://api.z.ai/api/anthropic"
+
+
+class SettingsUpdate(BaseModel):
+    """Request to update settings."""
+    api_key: str | None = None
+    selected_model: str | None = None
+
+
+class ApiKeyRequest(BaseModel):
+    """Request schema for saving API key."""
+    api_key: str = Field(..., min_length=1, description="ZAI API key")
+
+
+class ApiKeyResponse(BaseModel):
+    """Response schema for API key operations."""
+    success: bool
+    message: str = ""
+    masked_key: str | None = None
+
+
+# ============================================================================
+# Project Settings Schemas
+# ============================================================================
+
+class ProjectSettingsResponse(BaseModel):
+    """Response for project-level settings."""
+    selected_model: str = "glm-4.7"
+    available_models: list[ModelOption] = []
+
+
+class ProjectSettingsUpdate(BaseModel):
+    """Request to update project settings."""
+    selected_model: str | None = None
 
 
 # ============================================================================
